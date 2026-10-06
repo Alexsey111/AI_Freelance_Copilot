@@ -19,3 +19,13 @@ artifacts/*.json
 artifacts/*.csv
 artifacts/*.db
 artifacts/*.db-journal
+
+# Внутренние рабочие документы: не публикуются (остаются локально у автора).
+# Шаблон отчёта и ТЗ — материалы курса; журнал, сценарии и чек-лист — личные рабочие заметки.
+docs/проект автоматизации фриланса.md
+docs/Общие требования для вып. проекта.txt
+docs/REPORT_TEMPLATE.md
+docs/PROJECT_JOURNAL.md
+docs/DEMO_SCENARIO.md
+docs/DEFENSE_SCENARIO.md
+docs/CHECKLIST.md

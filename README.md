@@ -369,7 +369,7 @@ tests_data/             набор тестовых данных: inputs/specs/e
 tests/                  unit + integration (+ fixtures для набора данных)
 scripts/                seed_demo.py, run_tests_data.py, check_secrets.py
 artifacts/              экспорт прогона: JSON и CSV (создаётся скриптом)
-docs/                   архитектура, API, сценарий защиты, экономика, Docker
+docs/                   архитектура, API, экономика, Docker, отчёт
 Dockerfile.backend, Dockerfile.frontend, docker-compose.yml
 ```
 
@@ -380,11 +380,6 @@ Dockerfile.backend, Dockerfile.frontend, docker-compose.yml
 | `docs/REQUIREMENTS_MAPPING.md` | каждое требование → где реализовано и чем проверено; осознанные отклонения от ТЗ |
 | `docs/ARCHITECTURE.md` | слои, диаграммы, схема данных, контракт с моделью, шесть бизнес-правил |
 | `docs/API.md` | все точки доступа с примерами запросов и ответов |
-| `docs/DEFENSE_SCENARIO.md` | сценарий защиты 5–7 минут по шаблону урока: тайминг, что говорить, что показывать |
-| `docs/DEMO_SCENARIO.md` | пошаговый сценарий демонстрации и записи видео + частые вопросы |
 | `docs/ECONOMICS.md` | мини-экономика и метрики, правило «нет данных ≠ ноль» |
 | `docs/DOCKER.md` | запуск и проверка контейнеров |
-| `docs/CHECKLIST.md` | чек-лист приёмки: что проверено, что требует вашего участия |
-| `docs/PROJECT_JOURNAL.md` | журнал решений и найденных дефектов |
 | `docs/REPORT.md` | готовый отчёт по шаблону урока: ценность, сценарии, схема данных, ИИ-операция, качество, экономика, риски, план |
-| `docs/REPORT_TEMPLATE.md` | отчёт по шаблону: ценность, сценарии, схема данных, качество, экономика, риски, развитие |
