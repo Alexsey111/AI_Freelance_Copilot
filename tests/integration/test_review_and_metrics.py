@@ -124,6 +124,14 @@ def test_health_and_profile(client):
     assert health["provider"]["is_live"] is False
     assert health["provider"]["prompt_version"] == "v1.0"
 
+    # mock --- безопасный режим по умолчанию. Чтобы это не выглядело поломкой, ответ обязан
+    # объяснять причину и как переключиться на реальную модель (включая требование перезапуска:
+    # настройки читаются один раз при старте приложения).
+    assert "mock" in health["provider"]["warning"].lower()
+    hint = health["provider"]["hint"]
+    assert "LLM_PROVIDER=openai" in hint
+    assert "ПЕРЕЗАПУСТИТЕ" in hint
+
     profile = client.get("/api/v1/profiles/active").json()
     assert profile["skills"]
     assert "Python" in profile["skills"]

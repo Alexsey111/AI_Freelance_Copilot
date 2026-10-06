@@ -90,6 +90,10 @@ class ProviderOut(BaseModel):
     model: str
     prompt_version: str
     is_live: bool = Field(description="True --- реальный внешний провайдер (тратит деньги)")
+    hint: str = Field(
+        default="",
+        description="Что делать, если активен не тот провайдер (как переключиться на реальный LLM)",
+    )
     warning: str | None = None
 
 

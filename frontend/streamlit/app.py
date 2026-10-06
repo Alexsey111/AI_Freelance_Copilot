@@ -49,7 +49,9 @@ with st.sidebar:
         if provider.get("is_live"):
             st.warning(f"LLM: {provider.get('name')} / {provider.get('model')} (тратит деньги)")
         else:
-            st.info(f"LLM: {provider.get('name')} (офлайн, тестовый)")
+            st.warning(f"LLM: {provider.get('name')} (офлайн, тестовый) — модель не вызывается")
+            if provider.get("hint"):
+                st.caption(provider["hint"])
         st.caption(f"Промпт: {provider.get('prompt_version')}")
     st.caption(
         "Реальные площадки и автоотправка откликов в MVP не подключены (ТЗ §22)."
