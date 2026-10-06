@@ -5,10 +5,10 @@
 ## Прогон
 
 ```bash
-./.venv/Scripts/python.exe -m pytest -q                       # 76 passed
-./.venv/Scripts/python.exe -m ruff check .                     # All checks passed!
-./.venv/Scripts/python.exe -m pytest --cov=app -q              # покрытие app/ ≈ 92%
-./.venv/Scripts/python.exe scripts/check_secrets.py            # Секретов не найдено (87 файлов)
+./.venv/Scripts/python.exe -m pytest             # 82 passed in 1.77s
+./.venv/Scripts/python.exe -m ruff check .       # All checks passed!
+./.venv/Scripts/python.exe -m pytest --cov=app   # покрытие app/ 95%
+./.venv/Scripts/python.exe scripts/check_secrets.py   # Секретов не найдено (93 файла)
 ```
 
 ## Функциональный чек-лист

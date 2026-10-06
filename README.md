@@ -18,7 +18,7 @@
 | Метрики проекта и мини-экономика | ✅ |
 | Веб-панель (Streamlit): 6 экранов | ✅ |
 | Docker: backend + frontend одним `docker compose up` | ✅ (backend `healthy`, панель на 8501) |
-| Unit- и integration-тесты, линтер | ✅ 76 тестов, покрытие app/ ≈ 92%, ruff чист |
+- [x] Unit- и integration-тесты, линтер | ✅ 82 теста, покрытие app/ 95%, ruff чист |
 
 Чего в MVP **сознательно нет** (по ТЗ §22): реального парсинга площадок, автоотправки откликов,
 RAG/векторной базы, Redis, Celery, Kubernetes, микросервисов, OpenClaw/Hermes.
@@ -71,7 +71,7 @@ Backend — `http://localhost:8000`, панель — `http://localhost:8501`, �
 ## Тесты и линтер
 
 ```bash
-./.venv/Scripts/python.exe -m pytest -q           # 76 тестов, сеть и деньги не используются
+./.venv/Scripts/python.exe -m pytest               # 82 теста, сеть и деньги не используются
 ./.venv/Scripts/python.exe -m ruff check .        # линтер
 ./.venv/Scripts/python.exe scripts/check_secrets.py   # ключи не должны попасть в Git
 ```

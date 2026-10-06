@@ -72,7 +72,7 @@
 | §29.1–29.5 | Правила надёжности | 29.1 — правила в сервисе; 29.2 — `match_score=null`; 29.3 — `LLMInvalidResponseError`; 29.4 — аудит пишется всегда; 29.5 — `prompt_version` в `analyses` и аудите |
 | §30 | Конфигурация, секреты не в Git | `app/config.py`, `.env.example`, `.gitignore`, `scripts/check_secrets.py` |
 | §31 | Docker | `Dockerfile`, `docker-compose.yml`, `docs/DOCKER.md` |
-| §32 | Unit + integration + особый тест невалидного JSON | 76 тестов; особые — `test_invalid_json_from_llm_is_handled`, `test_llm_timeout_marks_order_as_error_but_records_everything` |
+| §32 | Unit + integration + особый тест невалидного JSON | 82 теста (покрытие app/ 95%); особые — `test_invalid_json_from_llm_is_handled`, `test_llm_timeout_marks_order_as_error_but_records_everything` |
 | §33 | Мини-экономика | `docs/ECONOMICS.md`, `Metrics.economy()`, экран метрик |
 | §34 | Метрики | `MetricsService.collect()`, `GET /api/v1/metrics` |
 
