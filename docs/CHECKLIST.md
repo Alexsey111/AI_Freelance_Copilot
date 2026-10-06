@@ -5,7 +5,7 @@
 ## Прогон
 
 ```bash
-./.venv/Scripts/python.exe -m pytest             # 117 passed
+./.venv/Scripts/python.exe -m pytest             # 121 passed
 ./.venv/Scripts/python.exe -m pytest --cov=app   # покрытие app/ 96%
 ./.venv/Scripts/python.exe -m ruff check .       # All checks passed!
 ./.venv/Scripts/python.exe scripts/check_secrets.py   # в репозиторий секреты не уезжают
@@ -86,7 +86,7 @@
 ## Что требует вашего участия
 
 - [x] **Код на GitHub.** Отправлено в `main` через Git Credential Manager (учётные данные уже
-      сохранены в системе). Проверено клонированием с GitHub: 108 файлов, 117 тестов проходят,
+      сохранены в системе). Проверено клонированием с GitHub: 108 файлов, 121 тест проходят,
       ключа в репозитории нет.
 - [x] **Реальный LLM.** Живой прогон выполнен (proxyapi, `gpt-4o-mini`): 3 заказа, `apply` / `review` /
       `skip`, 0 ошибок, `json_valid_rate=1.0`, экспорт в `artifacts/*-live-*`. Подробности —
