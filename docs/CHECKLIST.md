@@ -5,7 +5,7 @@
 ## Прогон
 
 ```bash
-./.venv/Scripts/python.exe -m pytest             # 113 passed
+./.venv/Scripts/python.exe -m pytest             # 117 passed
 ./.venv/Scripts/python.exe -m pytest --cov=app   # покрытие app/ 96%
 ./.venv/Scripts/python.exe -m ruff check .       # All checks passed!
 ./.venv/Scripts/python.exe scripts/check_secrets.py   # в репозиторий секреты не уезжают
