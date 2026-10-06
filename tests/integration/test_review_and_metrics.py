@@ -78,7 +78,14 @@ def test_metrics_on_empty_database_report_no_data(client):
     assert metrics["apply_share"] is None
     assert metrics["avg_match_score"] is None
     assert metrics["avg_analyze_duration_ms"] is None
-    assert metrics["economy"]["saved_hours_per_100"] == 16.67
+
+    # Экономика --- оценка, поэтому считается и на пустой базе. Рабочее значение --- замер
+    # владельца (8 мин вручную), а разбивка ТЗ §33 (13 мин) видна отдельно для сравнения.
+    economy = metrics["economy"]
+    assert economy["manual_order_minutes"] == 8
+    assert economy["manual_order_minutes_spec"] == 13
+    assert economy["saved_hours_per_100"] == 8.33
+    assert economy["saved_hours_per_100"] < economy["saved_minutes_per_100_spec"] / 60
 
 
 def test_metrics_after_work(client, sample_payload, vague_payload):

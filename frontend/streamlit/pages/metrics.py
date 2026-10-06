@@ -21,7 +21,10 @@ hourly_rate = st.number_input(
     max_value=100000.0,
     value=1500.0,
     step=100.0,
-    help="Оценка для мини-экономики. В отчёте замените фактическим значением.",
+    help=(
+        "Сколько стоит один час ВАШЕГО времени — не цена заказа. "
+        "Ориентир: доход в час в последних проектах. Расчёт пересчитывается сразу."
+    ),
 )
 
 try:
@@ -39,20 +42,38 @@ def show(value, suffix: str = "") -> str:
 st.subheader("Главная метрика")
 st.markdown(
     "**Сколько времени человек экономит при обработке одного заказа.** "
-    "Ниже — расчёт «на салфетке» и фактические замеры MVP."
+    "Рабочее значение — фактический замер владельца; разбивка из ТЗ §33 показана рядом для сравнения."
 )
 
 economy = metrics["economy"]
 col1, col2, col3 = st.columns(3)
-col1.metric("Вручную, 1 заказ", f"{economy['manual_order_minutes']} мин")
-col2.metric("С системой, 1 заказ", f"{economy['assisted_order_minutes']} мин")
+col1.metric("Вручную, 1 заказ", f"{economy['manual_order_minutes']} мин", help=economy["manual_time_source"])
+col2.metric("С системой, 1 заказ", f"{economy['assisted_order_minutes']} мин",
+            help=economy["assisted_time_source"])
 col3.metric("Экономия", f"{economy['manual_order_minutes'] - economy['assisted_order_minutes']} мин")
 
 st.markdown("**На 100 заказов:**")
 col4, col5, col6 = st.columns(3)
 col4.metric("Вручную", f"{economy['manual_100_hours']} ч")
 col5.metric("С системой", f"{economy['assisted_100_hours']} ч")
-col6.metric("Экономия", f"{economy['saved_hours_per_100']} ч ≈ {economy['saved_money_rub_per_100']:,.0f} ₽")
+col6.metric("Экономия", f"{economy['saved_hours_per_100']} ч ≈ {economy['saved_money_rub_per_100']:,.0f} ₽",
+            help=economy["money_formula"])
+
+with st.expander("Откуда взяты цифры (что замерено, а что оценка)"):
+    st.markdown(
+        f"- **{economy['manual_order_minutes']} мин вручную** — {economy['manual_time_source']}\n"
+        f"- **{economy['assisted_order_minutes']} мин с системой** — {economy['assisted_time_source']}\n"
+        f"- **Ставка** — {economy['hourly_rate_hint']}\n"
+        f"- **Формула денег** — `{economy['money_formula']}`"
+    )
+    st.markdown("**Сравнение с исходным требованием ТЗ §33** (оценочные 13 мин вместо замера):")
+    cmp1, cmp2 = st.columns(2)
+    cmp1.metric("Экономия по ТЗ, ч", f"{economy['saved_minutes_per_100_spec'] / 60:.1f}")
+    cmp2.metric("По ТЗ, ₽", f"{economy['saved_money_rub_per_100_spec']:,.0f} ₽")
+    st.caption(
+        "Разница — это и есть цена честного замера: учебная разбивка (13 мин) давала более "
+        "оптимистичную картину, чем фактическое время владельца (8 мин)."
+    )
 
 st.divider()
 st.subheader("Дополнительные метрики")

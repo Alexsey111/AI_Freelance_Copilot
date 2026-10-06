@@ -27,11 +27,18 @@ class AuditListResponse(BaseModel):
 
 
 class EconomyOut(BaseModel):
-    """Мини-экономика "на салфетке" (ТЗ §33)."""
+    """Мини-экономика (ТЗ §33): по умолчанию замер владельца, разбивка ТЗ --- для сравнения."""
 
     hourly_rate_rub: float
+    hourly_rate_hint: str = ""
+    money_formula: str = ""
+
     manual_order_minutes: int
     assisted_order_minutes: int
+    manual_order_minutes_spec: int = 13
+    manual_time_source: str = ""
+    assisted_time_source: str = ""
+
     manual_100_minutes: int
     assisted_100_minutes: int
     manual_100_hours: float
@@ -39,6 +46,12 @@ class EconomyOut(BaseModel):
     saved_minutes_per_100: int
     saved_hours_per_100: float
     saved_money_rub_per_100: float
+
+    # То же самое по разбивке из ТЗ §33 (13 мин вместо замера 8 мин) --- чтобы было видно,
+    # насколько требование расходится с фактическими данными владельца.
+    saved_minutes_per_100_spec: int = 1000
+    saved_money_rub_per_100_spec: float = 25000.0
+
     measured_avg_analysis_seconds: float | None = None
 
 
