@@ -110,6 +110,16 @@ json_valid_rate:     1.0      ошибок LLM: 0
 экспорт:             artifacts/showcase-live-*.{json,csv}, audit-live-*, metrics-live-*, order1_detail-live-*
 ```
 
+Посмотреть живой прогон в панели (база отдельная от демонстрационной):
+
+```bash
+DATABASE_URL="sqlite:///./artifacts/live.db" LLM_PROVIDER=openai \
+  ./.venv/Scripts/python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8600
+BACKEND_URL="http://127.0.0.1:8600" \
+  ./.venv/Scripts/python.exe -m streamlit run frontend/streamlit/app.py --server.port 8602
+# открыть http://127.0.0.1:8602 — 5 заказов, среди них заказ с FL.ru
+```
+
 Дефект, найденный только на живом прогоне: `GET /api/v1/orders/{id}` отдавал `latest_analysis: null`
 (в витрине анализ был). Исправлено, закрыто 4 тестами с проверкой падения на старом коде.
 

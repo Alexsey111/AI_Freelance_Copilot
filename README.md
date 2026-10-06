@@ -202,6 +202,30 @@ curl -s http://127.0.0.1:8000/api/v1/metrics
 
 Схема данных с полями и связями — `docs/ARCHITECTURE.md` (раздел «Схема данных»).
 
+### Переключение между базами (важно при демонстрации)
+
+Панель показывает **ту базу, которую читает backend**. Если поднять backend с другим `DATABASE_URL`,
+панель этого не заметит — она просто покажет старые данные из `data/app.db` с другого порта.
+Поэтому для показа прогона на реальной модели нужна своя пара «backend + панель»:
+
+```bash
+# демонстрация (mock, база data/app.db, порты 8000/8501)
+./.venv/Scripts/python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+./.venv/Scripts/python.exe -m streamlit run frontend/streamlit/app.py
+
+# живой прогон на реальной модели (база artifacts/live.db, порты 8600/8602)
+DATABASE_URL="sqlite:///./artifacts/live.db" LLM_PROVIDER=openai \
+  ./.venv/Scripts/python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8600
+BACKEND_URL="http://127.0.0.1:8600" \
+  ./.venv/Scripts/python.exe -m streamlit run frontend/streamlit/app.py --server.port 8602
+
+# прогон набора тестовых данных (15 сценариев, база artifacts/demo.db)
+DATABASE_URL="sqlite:///./artifacts/demo.db" \
+  ./.venv/Scripts/python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8400
+```
+
+Панель пишет в подвале адрес своего backend — по нему видно, к какой базе она подключена.
+
 ## Тестовые данные (папка `tests_data/`)
 
 | Файл | Содержимое |

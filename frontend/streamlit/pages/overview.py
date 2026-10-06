@@ -73,4 +73,4 @@ st.markdown(
     5. **Аудит** — каждый запуск (включая ошибки) пишется в `audit_runs` с длительностью.
     """
 )
-st.caption("Документация API: http://127.0.0.1:8000/docs")
+st.caption(f"Документация API: {client.base_url}/docs")
