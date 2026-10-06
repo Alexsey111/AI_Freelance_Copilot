@@ -160,6 +160,10 @@ class OrderService:
     def get_order(self, order_id: int) -> Order | None:
         return self.orders.get(order_id)
 
+    def latest_analysis(self, order_id: int):
+        """Последний анализ заказа --- для карточки (в витрине это делает list_orders)."""
+        return self.analyses.latest_for_order(order_id)
+
     def list_analyses(self, order_id: int) -> list:
         """История анализов заказа (карточка заказа показывает все запуски ИИ)."""
         return self.analyses.list_for_order(order_id)

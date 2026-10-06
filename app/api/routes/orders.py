@@ -143,13 +143,16 @@ def list_orders(
     "/{order_id}",
     response_model=OrderDetailOut,
     summary="Карточка заказа",
-    description="Входные данные + сырой ввод (raw_input). Анализы --- отдельной точкой.",
+    description=(
+        "Входные данные + сырой ввод (raw_input) + последний анализ (latest_analysis). "
+        "История всех запусков --- отдельной точкой /orders/{id}/analyses."
+    ),
 )
 def get_order(order_id: int, service: OrderService = Depends(get_order_service)):
     order = service.get_order(order_id)
     if order is None:
         raise HTTPException(status_code=404, detail=f"Заказ #{order_id} не найден")
-    base = _to_out(order)
+    base = _to_out(order, service.latest_analysis(order_id))
     return OrderDetailOut(
         **base.model_dump(),
         raw_input=order.raw_input if isinstance(order.raw_input, dict) else None,
