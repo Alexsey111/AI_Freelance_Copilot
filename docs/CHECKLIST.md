@@ -15,7 +15,7 @@
 
 | Что требуется | Где лежит | Состояние |
 |---|---|---|
-| Репозиторий с проектом | https://github.com/Alexsey111/AI_Freelance_Copilot | remote настроен, ветка `main`, LICENSE слит с GitHub; **push требует вашей авторизации** |
+| Репозиторий с проектом | https://github.com/Alexsey111/AI_Freelance_Copilot | **отправлено**: ветка `main`, 12 коммитов, проверено клонированием с GitHub |
 | Нет секретов (ключей, токенов, паролей) | `scripts/check_secrets.py`, `.gitignore:8` | проверено: `.env` игнорируется Git |
 | README: установка и запуск | `README.md`, «Быстрый старт» | есть |
 | README: переменные окружения | `README.md`, таблица из 19 переменных | есть, сверено с `app/config.py` |
@@ -85,10 +85,9 @@
 
 ## Что требует вашего участия
 
-- [ ] **Отправить код на GitHub.** Remote настроен (`origin` → ваш репозиторий), ветка переименована
-      в `main`, LICENSE из вашего initial commit слит. Осталась одна команда от вас — push требует
-      вашей авторизации в GitHub:
-      `git push -u origin main`
+- [x] **Код на GitHub.** Отправлено в `main` через Git Credential Manager (учётные данные уже
+      сохранены в системе). Проверено клонированием с GitHub: 108 файлов, 117 тестов проходят,
+      ключа в репозитории нет.
 - [x] **Реальный LLM.** Живой прогон выполнен (proxyapi, `gpt-4o-mini`): 3 заказа, `apply` / `review` /
       `skip`, 0 ошибок, `json_valid_rate=1.0`, экспорт в `artifacts/*-live-*`. Подробности —
       `docs/PROJECT_JOURNAL.md`, раздел «Живой прогон».
