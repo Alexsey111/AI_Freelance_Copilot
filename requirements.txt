@@ -8,6 +8,7 @@ httpx>=0.27
 openai>=1.55
 python-dotenv>=1.0
 streamlit>=1.40
+requests>=2.31          # scripts/run_tests_data.py: прогон набора тестовых данных по живому API
 
 # tests / quality gates
 pytest>=8.3

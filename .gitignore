@@ -13,5 +13,9 @@ data/*.db-journal
 .idea/
 .vscode/
 
-# Артефакты прогона (экспорт JSON/CSV) и демо-базы — воспроизводятся скриптом run_tests_data.py
-artifacts/
+# Артефакты прогона (экспорт JSON/CSV) и демо-базы: воспроизводятся скриптом run_tests_data.py,
+# поэтому в репозиторий не попадают — но README рядом остаётся, он объясняет формат
+artifacts/*.json
+artifacts/*.csv
+artifacts/*.db
+artifacts/*.db-journal
