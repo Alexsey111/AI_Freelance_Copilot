@@ -18,7 +18,7 @@
 | Метрики проекта и мини-экономика | ✅ |
 | Веб-панель (Streamlit): 6 экранов | ✅ |
 | Docker: backend + frontend одним `docker compose up` | ✅ (backend `healthy`, панель на 8501) |
-- [x] Unit- и integration-тесты, линтер | ✅ 82 теста, покрытие app/ 95%, ruff чист |
+| Unit- и integration-тесты, линтер | ✅ 82 теста, покрытие app/ 95%, ruff чист |
 
 Чего в MVP **сознательно нет** (по ТЗ §22): реального парсинга площадок, автоотправки откликов,
 RAG/векторной базы, Redis, Celery, Kubernetes, микросервисов, OpenClaw/Hermes.
