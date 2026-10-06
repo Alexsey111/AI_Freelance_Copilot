@@ -1,0 +1,16 @@
+# AI Freelance Copilot --- runtime + test dependencies (MVP)
+fastapi>=0.115
+uvicorn[standard]>=0.32
+sqlalchemy>=2.0.36
+pydantic>=2.9
+pydantic-settings>=2.6
+httpx>=0.27
+openai>=1.55
+python-dotenv>=1.0
+streamlit>=1.40
+
+# tests / quality gates
+pytest>=8.3
+pytest-asyncio>=0.24
+pytest-cov>=6.0
+ruff>=0.7

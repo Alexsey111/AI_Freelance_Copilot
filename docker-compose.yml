@@ -1,0 +1,43 @@
+# Минимальный запуск: два контейнера (ТЗ §31). SQLite лежит в именованном volume.
+#
+# Порты на хосте настраиваются: на машине могут быть заняты 8000/8501 другими сервисами.
+#   BACKEND_PORT=8300 FRONTEND_PORT=8601 docker compose up --build
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: copilot-backend
+    environment:
+      APP_ENV: production
+      DATABASE_URL: sqlite:////app/data/app.db
+      # mock по умолчанию: контейнер поднимается без ключей и без затрат.
+      # Для реальной модели: LLM_PROVIDER=openai, LLM_API_KEY, LLM_BASE_URL, LLM_MODEL
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LOG_LEVEL: INFO
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - copilot-data:/app/data
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: copilot-frontend
+    environment:
+      # Внутри сети compose frontend обращается к backend по имени сервиса.
+      BACKEND_URL: http://backend:8000
+    ports:
+      - "${FRONTEND_PORT:-8501}:8501"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  copilot-data:

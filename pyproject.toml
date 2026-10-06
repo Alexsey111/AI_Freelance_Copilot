@@ -1,0 +1,29 @@
+[project]
+name = "ai-freelance-copilot"
+version = "0.1.0"
+description = "MVP ядра системы автоматизации фриланса: заказы, ИИ-анализ, ручная проверка, аудит"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-q --strict-markers"
+markers = [
+    "integration: тесты, проходящие через HTTP API и БД",
+    "unit: тесты отдельных функций и правил",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = [
+    "E501",   # длина строки: ориентир 100, но жёстко не ломаем (тексты на русском)
+    "B008",   # FastAPI: Depends()/Query() в аргументах по умолчанию — штатный паттерн
+    "UP042",  # str+Enum оставлен намеренно: значения enum сериализуются как строки
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]
