@@ -1,0 +1,10 @@
+{"id": "Q01_all", "params": {}, "expect_total": 15}
+{"id": "Q02_needs_review", "params": {"needs_review": "true"}, "expect_total": 8, "expect_all_needs_review": true}
+{"id": "Q03_analyzed", "params": {"status": "analyzed"}, "expect_total": 7}
+{"id": "Q04_error", "params": {"status": "error"}, "expect_total": 1}
+{"id": "Q05_recommendation_apply", "params": {"recommendation": "apply"}, "expect_total": 2}
+{"id": "Q06_recommendation_skip", "params": {"recommendation": "skip"}, "expect_total": 5}
+{"id": "Q07_search", "params": {"search": "Tilda"}, "expect_total": 1}
+{"id": "Q08_source", "params": {"source": "manual"}, "expect_total": 15}
+{"id": "Q09_pagination", "params": {"page": 2, "page_size": 5}, "expect_total": 15, "expect_items": 5, "expect_page": 2}
+{"id": "Q10_invalid_status", "params": {"status": "не_статус"}, "expect_http": 422}

@@ -20,11 +20,15 @@ from app.infrastructure.llm.base import (
     LLMTimeoutError,
 )
 
-# Ключевые слова, включающие "плохие" сценарии в mock-провайдере (только для тестов/демо).
-TRIGGER_BAD_JSON = "MOCK_BAD_JSON"
-TRIGGER_TIMEOUT = "MOCK_TIMEOUT"
-TRIGGER_LOW_MATCH = "MOCK_LOW_MATCH"
-TRIGGER_LOW_CONFIDENCE = "MOCK_LOW_CONFIDENCE"
+# Ключевые слова, включающие сценарии в mock-провайдере (только для тестов и демонстрации).
+# Каждый триггер соответствует одному из случаев ТЗ §14, чтобы правило проверялось сквозь API,
+# а не только юнит-тестом на внутреннем методе.
+TRIGGER_BAD_JSON = "MOCK_BAD_JSON"            # §14.2 невалидный ответ модели
+TRIGGER_TIMEOUT = "MOCK_TIMEOUT"              # §14.5 ошибка LLM
+TRIGGER_LOW_MATCH = "MOCK_LOW_MATCH"          # низкая уверенность при хорошем расчёте по профилю
+TRIGGER_LOW_CONFIDENCE = "MOCK_LOW_CONFIDENCE"  # модель сама просит проверку
+TRIGGER_INFLATED = "MOCK_INFLATED"            # завышенная оценка: расхождение с расчётом по профилю
+TRIGGER_NO_DRAFT = "MOCK_NO_DRAFT"            # apply без черновика отклика
 
 
 class MockProvider:
@@ -95,6 +99,33 @@ class MockProvider:
                 draft_reply=None,
                 needs_review=True,
                 review_reason="Низкая уверенность модели --- требуется проверка человеком",
+            )
+
+        # §14.4: модель рекомендует отклик, но черновик не сформирован --- бизнес-логика
+        # обязана понизить решение до ручной проверки.
+        if TRIGGER_NO_DRAFT in text:
+            return AnalysisResult(
+                match_score=score,
+                recommendation=Recommendation.APPLY,
+                reason="Mock: заказ подходит профилю",
+                matched_skills=outcome.matched_skills,
+                missing_skills=outcome.missing_skills,
+                draft_reply=None,
+                needs_review=False,
+                review_reason=None,
+            )
+
+        # §14.3/§14.6: модель завышает оценку относительно расчёта по профилю.
+        if TRIGGER_INFLATED in text:
+            return AnalysisResult(
+                match_score=0.99,
+                recommendation=Recommendation.APPLY,
+                reason="Mock: заказ отлично подходит профилю",
+                matched_skills=outcome.matched_skills,
+                missing_skills=outcome.missing_skills,
+                draft_reply=_draft_reply(order, profile, outcome.matched_skills or ["Python"]),
+                needs_review=False,
+                review_reason=None,
             )
 
         recommendation = (

@@ -12,3 +12,6 @@ data/*.db-journal
 *.log
 .idea/
 .vscode/
+
+# Артефакты прогона (экспорт JSON/CSV) и демо-базы — воспроизводятся скриптом run_tests_data.py
+artifacts/

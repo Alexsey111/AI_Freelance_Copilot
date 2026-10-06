@@ -1,0 +1,15 @@
+{"id": "S01_telegram_bot", "audit_action": "analyze_order", "audit_status": "success", "rule": "полное покрытие стека профилем"}
+{"id": "S02_parser_excel", "audit_action": "analyze_order", "audit_status": "success", "rule": "парсинг и выгрузка --- сильная сторона профиля"}
+{"id": "S03_tilda_landing", "audit_action": "analyze_order", "audit_status": "success", "rule": "вёрстка не в профиле: уверенный отказ"}
+{"id": "S04_1c", "audit_action": "analyze_order", "audit_status": "success", "rule": "1С не в профиле"}
+{"id": "S05_seo", "audit_action": "analyze_order", "audit_status": "success", "rule": "SEO не в профиле"}
+{"id": "S06_mobile_flutter", "audit_action": "analyze_order", "audit_status": "success", "rule": "мобильная разработка не в профиле"}
+{"id": "S07_no_budget_long", "audit_action": "analyze_order", "audit_status": "review", "rule": "РУЧНАЯ ПРОВЕРКА: система не выдумывает бюджет"}
+{"id": "S08_vague_short", "audit_action": "analyze_order", "audit_status": "review", "rule": "РУЧНАЯ ПРОВЕРКА: случай из ТЗ §13"}
+{"id": "S09_partial_match", "audit_action": "analyze_order", "audit_status": "review", "rule": "РУЧНАЯ ПРОВЕРКА: уверенность модели ниже порога --- система не берёт решение на себя"}
+{"id": "S10_php_only", "audit_action": "analyze_order", "audit_status": "success", "rule": "PHP/Laravel не в профиле"}
+{"id": "S11_analytics_borderline", "audit_action": "analyze_order", "audit_status": "review", "rule": "РУЧНАЯ ПРОВЕРКА: модель сама сообщила о неуверенности --- повод для человека"}
+{"id": "S12_llm_bad_json", "audit_action": "analyze_order", "audit_status": "review", "rule": "РУЧНАЯ ПРОВЕРКА: невалидный JSON модели (ТЗ §29.3)"}
+{"id": "S13_llm_timeout", "audit_action": "analyze_order", "audit_status": "error", "rule": "ОШИБКА LLM: заказ в error, но запись аудита есть (ТЗ §29.4)"}
+{"id": "S14_llm_no_draft", "audit_action": "analyze_order", "audit_status": "review", "rule": "РУЧНАЯ ПРОВЕРКА: apply без черновика понижается до review, оценка модели при этом сохраняется (ТЗ §14.4)"}
+{"id": "S15_llm_inflated", "audit_action": "analyze_order", "audit_status": "review", "rule": "РУЧНАЯ ПРОВЕРКА: оценка модели расходится с расчётом по профилю (ТЗ §14.6)"}

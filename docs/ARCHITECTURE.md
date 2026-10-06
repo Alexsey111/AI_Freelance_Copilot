@@ -150,3 +150,78 @@ graph TD
 | 5. Уведомления | `TelegramAction` через `ActionExecutor` | бизнес-логика |
 | 6. Автодействия | `SendProposal` для явно разрешённых действий | правила §15 |
 | 7. Агентная оболочка | OpenClaw/Hermes как клиент API | весь основной код остаётся своим |
+
+## 9. Схема данных
+
+Четыре таблицы, SQLite, создаются автоматически (`Database.create_all()`, ТЗ §31 MVP-миграции).
+
+```mermaid
+erDiagram
+    PROFILES ||--o{ ANALYSES : "профиль исполнителя"
+    ORDERS   ||--o{ ANALYSES : "может быть несколько запусков"
+    ORDERS   ||--o{ AUDIT_RUNS : "журнал действий"
+    ANALYSES ||--o{ AUDIT_RUNS : "в т.ч. решение человека"
+```
+
+**`orders` — заказы.**
+
+| Поле | Тип | Смысл |
+|---|---|---|
+| `id` | int PK | идентификатор |
+| `source` | enum | `manual` / `flru` / `kwork` / `freelance_ru` / `telegram` / `rss` / `webhook` |
+| `external_id` | str | id во внешней системе; вместе с `source` даёт дедупликацию |
+| `url` | str? | ссылка на заказ |
+| `title`, `description` | str | нормализованный текст заказа |
+| `budget_min`, `budget_max`, `currency` | number?, str | бюджет как пришёл; **не додумывается**, если пусто |
+| `status` | enum | `new` → `analyzing` → `analyzed` / `needs_review` / `approved` / `rejected` / `error` |
+| `needs_review` | bool | заказ в очереди ручной проверки (отдельно от статуса анализа) |
+| `created_at`, `updated_at` | datetime | моменты создания и последнего изменения |
+
+**`analyses` — результаты ИИ-анализа (один заказ — сколько угодно запусков).**
+
+| Поле | Тип | Смысл |
+|---|---|---|
+| `id` | int PK | идентификатор анализа |
+| `order_id`, `profile_id` | FK | что с чем сравнивали |
+| `model_name`, `prompt_version` | str | какой моделью и какой версией промпта получен результат |
+| `match_score` | float? | оценка соответствия (профиль) |
+| `recommendation` | enum | `apply` / `skip` / `review` |
+| `reason` | str | объяснение от модели |
+| `matched_skills`, `missing_skills` | JSON | совпавшие и недостающие навыки |
+| `draft_reply` | text? | черновик отклика; на ручной проверке — пусто |
+| `needs_review` | bool | требуется человек |
+| `review_reason` | text? | **причина** проверки (обязательна, если `needs_review`) |
+| `raw_response` | text? | сырой ответ модели — для разбора инцидентов |
+| `duration_ms` | int | сколько занял вызов |
+| `reviewed_at`, `review_decision`, `review_comment` | datetime/enum/text | решение человека: `approved` / `rejected` |
+
+**`audit_runs` — журнал каждого действия (доказательство работоспособности).**
+
+| Поле | Тип | Смысл |
+|---|---|---|
+| `id` | int PK | идентификатор записи |
+| `action` | enum | `create_order`, `list_orders`, `get_order`, `analyze_order`, `review_decision`, … |
+| `order_id`, `analysis_id` | FK? | к чему относится действие |
+| `status` | enum | `success` / `review` / `error` |
+| `input_payload`, `output_payload` | JSON | что подали и что получили |
+| `error` | text? | текст ошибки (например, `LLM timeout`) |
+| `duration_ms` | int | длительность действия |
+| `created_at` | datetime | когда |
+
+**`profiles` — профиль исполнителя.**
+
+| Поле | Тип | Смысл |
+|---|---|---|
+| `id` | int PK | профиль по умолчанию создаётся при старте (`DEFAULT_PROFILE_ID=1`) |
+| `name`, `title`, `about` | str | кто исполнитель |
+| `skills`, `normalized_skills` | JSON | навыки и их нормализованный вид для matching |
+| `hourly_rate_rub` | float | ставка для мини-экономики |
+| `is_default` | bool | профиль, применяемый по умолчанию |
+
+Посмотреть данные напрямую:
+
+```bash
+./.venv/Scripts/python.exe -c "import sqlite3; con=sqlite3.connect('data/app.db'); print([r[0] for r in con.execute(\"select name from sqlite_master where type='table'\")])"
+```
+
+Или через API и панель: `docs/API.md`, экраны «Заказы», «Аудит и ошибки».
