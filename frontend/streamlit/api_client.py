@@ -7,7 +7,10 @@ from typing import Any
 
 import requests
 
-DEFAULT_BASE_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
+# ВАЖНО (Windows): именно 127.0.0.1, а не localhost. Имя localhost разрешается сначала
+# в IPv6 (::1), а на ::1 порт 8000 может держать ретранслятор Docker (wslrelay.exe) от чужого
+# контейнера --- тогда вместо нашего API отвечает он и возвращает 404 {"detail":"Not Found"}.
+DEFAULT_BASE_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
 
 
 class ApiError(RuntimeError):

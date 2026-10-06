@@ -66,7 +66,7 @@ DEMO_ORDERS = [
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Наполнить систему демонстрационными данными")
-    parser.add_argument("--base-url", default="http://localhost:8000")
+    parser.add_argument("--base-url", default="http://127.0.0.1:8000")
     parser.add_argument("--analyze", action="store_true", default=True)
     args = parser.parse_args()
     base = args.base_url.rstrip("/")

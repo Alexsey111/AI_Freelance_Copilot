@@ -8,12 +8,18 @@ apply 2 / skip 1 / review 1, средний анализ ~6 мс, средний
 
 ```bash
 cd "D:\python projects\AI_Freelance_Copilot"
-./.venv/Scripts/python.exe -m uvicorn app.main:app --port 8000        # терминал 1
+rm -f data/app.db                                                      # чистый старт
+./.venv/Scripts/python.exe -m uvicorn app.main:app --port 8000         # терминал 1
 ./.venv/Scripts/python.exe -m streamlit run frontend/streamlit/app.py  # терминал 2
-./.venv/Scripts/python.exe scripts/seed_demo.py                         # наполнить данными
+./.venv/Scripts/python.exe scripts/seed_demo.py                        # наполнить данными
 ```
 
-Открыть `http://localhost:8501`.
+Открыть `http://127.0.0.1:8501` (именно `127.0.0.1`, не `localhost` — см. README).
+
+Почему важен `rm -f data/app.db`: заказы дедуплицируются по паре `(source, external_id)`,
+поэтому повторный запуск seed не создаёт дубликатов, но **анализы выполняются заново** —
+метрики накопятся (например «9 анализов на 4 заказа»). Для защиты нужен предсказуемый прогон,
+поэтому базу перед демонстрацией лучше обнулить.
 
 ## Шаг 1. «Витрина работает» (1 мин)
 

@@ -43,6 +43,13 @@ Docker-обвязка, 82 теста (покрытие app/ 95%), докумен
 | Единый Dockerfile для обоих сервисов | frontend наследовал healthcheck backend и вечно висел `unhealthy` | разделены `Dockerfile.backend` / `Dockerfile.frontend`, у backend healthcheck и `depends_on: service_healthy` |
 | Жёсткие порты 8000/8501 в compose | конфликт с чужим контейнером на 8000 (`faceid-core-api`) | порты вынесены в `BACKEND_PORT` / `FRONTEND_PORT` |
 
+**Дефект окружения, найденный при живом прогоне.** `curl http://localhost:8000/api/v1/health`
+возвращал `{"detail":"Not Found"}`, хотя сервер работал. Причина не в приложении: на Windows
+`localhost` разрешается сначала в IPv6, и `[::1]:8000` держал `wslrelay.exe` (ретранслятор
+Docker от чужого контейнера на 8000), который и отвечал 404. На `127.0.0.1:8000` отвечает
+наш uvicorn. Исправлено во всех умолчаниях и документации: `127.0.0.1` вместо `localhost`
+(`api_client.py`, `config.py`, `seed_demo.py`, `.env.example`, README, docs/API.md, docs/DOCKER.md).
+
 **Проверка Docker (2026-10-06).** Демон Docker Desktop на машине поднимается только
 ручным запуском (`"C:\Program Files\Docker\Docker\Docker Desktop.exe"`) — из фонового шелла
 он стартует и через минуту-две отваливается. После запуска вручную:

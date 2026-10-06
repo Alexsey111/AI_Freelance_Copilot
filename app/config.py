@@ -54,7 +54,8 @@ class Settings(BaseSettings):
     min_draft_reply_chars: int = 80
 
     # --- Frontend ---
-    backend_url: str = "http://localhost:8000"
+    # 127.0.0.1, а не localhost: см. комментарий в frontend/streamlit/api_client.py
+    backend_url: str = "http://127.0.0.1:8000"
 
     @property
     def is_test(self) -> bool:

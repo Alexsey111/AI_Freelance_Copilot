@@ -37,7 +37,11 @@ cp .env.example .env                                                  # ключ
 ./.venv/Scripts/python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-Backend поднимется на `http://localhost:8000`, документация — `http://localhost:8000/docs`.
+Backend поднимется на `http://127.0.0.1:8000`, документация — `http://127.0.0.1:8000/docs`.
+
+Важно: адрес именно `127.0.0.1`, а не `localhost`. На Windows `localhost` разрешается сначала
+в IPv6 (`::1`), и если порт 8000 там занят ретранслятором Docker от другого контейнера, запрос
+уходит не в это приложение и возвращается `{"detail":"Not Found"}`.
 База SQLite создаётся автоматически в `data/app.db`, профиль исполнителя — тоже.
 
 ### 2. Демонстрационные данные (необязательно, но удобно для защиты)
@@ -64,7 +68,7 @@ Backend поднимется на `http://localhost:8000`, документац�
 docker compose up --build
 ```
 
-Backend — `http://localhost:8000`, панель — `http://localhost:8501`, БД в volume `copilot-data`.
+Backend — `http://127.0.0.1:8000`, панель — `http://127.0.0.1:8501`, БД в volume `copilot-data`.
 Если эти порты заняты другими проектами: `BACKEND_PORT=8300 FRONTEND_PORT=8601 docker compose up -d`.
 Детали и результаты проверки в контейнере — `docs/DOCKER.md`.
 

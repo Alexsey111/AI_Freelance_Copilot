@@ -7,7 +7,7 @@ cd "D:\\python projects\\AI_Freelance_Copilot"
 docker compose up --build
 ```
 
-* Backend (FastAPI): `http://localhost:8000`, документация `/docs`
+* Backend (FastAPI): `http://127.0.0.1:8000`, документация `/docs`
 * Веб-панель (Streamlit): `http://localhost:8501`
 * Файл SQLite лежит в именованном volume `copilot-data` → данные переживают пересборку.
 
@@ -74,7 +74,7 @@ backend: `Backend: ok · БД: sqlite · LLM: mock`.
 ```bash
 docker compose ps                        # статус (backend должен быть healthy)
 docker compose logs -f backend           # логи backend
-curl http://localhost:8000/api/v1/health # проверка живости
+curl http://127.0.0.1:8000/api/v1/health # проверка живости (127.0.0.1, не localhost)
 docker compose exec -T backend python -c "import sqlite3;c=sqlite3.connect('/app/data/app.db');print(c.execute('select count(*) from orders').fetchone())"
 docker compose down -v                   # остановить и удалить volume с данными
 ```
