@@ -147,3 +147,90 @@ def test_good_case_passes_through_unchanged():
     assert decision.result.recommendation is Recommendation.APPLY
     assert decision.deterministic_score is not None
     assert decision.applied_rules == ["llm_result_accepted"]
+
+
+# --- Правило бюджета, добавленное после живого прогона 03.11.2026 (DEF-022) ---
+
+PROFILE_WITH_FLOOR = Profile(
+    id=3,
+    name="С минимумом",
+    skills=["Python", "FastAPI", "Docker", "LLM", "REST API"],
+    preferences={"min_budget_rub": 50000},
+)
+
+N8N_ORDER = Order(
+    id=4,
+    title="Настроить автоматизацию в n8n: заявки в Google Sheets",
+    description=(
+        "Хочу, чтобы заявки с сайта попадали в Google Sheets и по ним приходило уведомление "
+        "в Telegram. Говорят, это делается за вечер. Бюджет до 20000 рублей."
+    ),
+    budget_min=20000,
+    budget_max=20000,
+)
+
+
+def test_budget_below_profile_minimum_is_skipped():
+    """Модель предложила взять заказ за 20 000 ₽, а минимум в профиле — 50 000: решение системы — отказ."""
+    decision = _decide(N8N_ORDER, _llm_result(match_score=0.75), PROFILE_WITH_FLOOR)
+    assert decision.result.recommendation is Recommendation.SKIP
+    assert decision.result.needs_review is False
+    assert decision.result.draft_reply is None
+    assert decision.result.match_score is None, "оценка соответствия тут не решение: цена ниже минимума"
+    assert "budget_below_profile_minimum" in decision.applied_rules
+    assert "ниже минимума профиля" in decision.result.reason
+
+
+def test_budget_at_profile_minimum_is_not_skipped():
+    """Ровно на пороге — не отказ: правило строгое «ниже», а не «ниже или равно»."""
+    order = Order(
+        id=5,
+        title="Telegram-бот на Python с LLM",
+        description=(
+            "Нужен Telegram-бот на Python с интеграцией LLM. Требуется FastAPI, REST API, Docker. "
+            "Бюджет 50000-70000 рублей, срок 3 недели."
+        ),
+        budget_min=50000,
+        budget_max=70000,
+    )
+    decision = _decide(order, _llm_result(), PROFILE_WITH_FLOOR)
+    assert decision.result.recommendation is Recommendation.APPLY
+    assert "budget_below_profile_minimum" not in decision.applied_rules
+
+
+def test_profile_without_budget_floor_accepts_cheap_order():
+    """Нет min_budget_rub в профиле — правило бюджета не применяется вообще.
+
+    Итог всё равно review: в тестовых настройках расхождение с расчётом по профилю
+    (0.75 против 0.00) ловит другое правило — здесь важно только, что бюджетное не сработало.
+    """
+    decision = _decide(N8N_ORDER, _llm_result(match_score=0.75), PROFILE)
+    assert "budget_below_profile_minimum" not in decision.applied_rules
+    assert decision.deterministic_score == 0.0
+
+
+def test_review_with_partial_overlap_stays_review():
+    """Хотя бы один навык совпал (Python) — сомнение модели остаётся человеку."""
+    accounting = Order(
+        id=7,
+        title="Автоматизировать сборку отчётов из выгрузок 1С",
+        description=(
+            "Нужен скрипт на Python: свести 20 выгрузок из 1С в один файл, проверить расхождения. "
+            "Бюджет 40000-50000 рублей."
+        ),
+        budget_min=40000,
+        budget_max=50000,
+    )
+    result = _llm_result(
+        match_score=0.5,
+        recommendation="review",
+        needs_review=True,
+        missing_skills=["1С"],
+        matched_skills=["Python"],
+        draft_reply=None,
+        review_reason="У исполнителя нет опыта с 1С",
+    )
+    decision = _decide(accounting, result, PROFILE)
+    assert decision.result.needs_review is True
+    assert decision.result.recommendation is Recommendation.REVIEW
+    assert "no_skill_overlap_with_profile" not in decision.applied_rules

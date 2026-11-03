@@ -171,6 +171,22 @@ class AnalysisService:
         deterministic_score: float | None = None
         error: str | None = None
 
+    @staticmethod
+    def _budget_floor(profile) -> float | None:
+        """Минимальный бюджет из профиля исполнителя.
+
+        Принимаются оба написания: `min_budget_rub` (профиль агента) и `min_budget`
+        (профиль по умолчанию в ядре). Нет значения или оно нечисловое — правила нет.
+        """
+        preferences = getattr(profile, "preferences", None) or {}
+        raw = preferences.get("min_budget_rub", preferences.get("min_budget"))
+        if raw is None:
+            return None
+        try:
+            return float(raw)
+        except (TypeError, ValueError):
+            return None
+
     def _apply_business_rules(self, order: Order, profile, llm_result: AnalysisResult) -> _Decision:
         applied: list[str] = []
         order_skills = extract_skills(order.full_text)
@@ -183,6 +199,35 @@ class AnalysisService:
             return self._Decision(
                 result=AnalysisResult.review_fallback(
                     "; ".join(missing), "Недостаточно данных для надёжной оценки"
+                ),
+                applied_rules=applied,
+                deterministic_score=deterministic.score,
+            )
+
+        # Правило 1.2: бюджет заказа ниже минимума из профиля — детерминированный отказ.
+        # Порог живёт в профиле (preferences.min_budget_rub), а не в промпте: для модели это
+        # подсказка, и она может предложить заведомо убыточный заказ с готовым черновиком.
+        budget_floor = self._budget_floor(profile)
+        order_budget_top = order.budget_max if order.budget_max is not None else order.budget_min
+        if (
+            budget_floor is not None
+            and order_budget_top is not None
+            and order_budget_top < budget_floor
+        ):
+            applied.append("budget_below_profile_minimum")
+            return self._Decision(
+                result=AnalysisResult(
+                    match_score=None,
+                    recommendation=Recommendation.SKIP,
+                    reason=(
+                        f"Бюджет заказа {order_budget_top:.0f} ₽ ниже минимума профиля "
+                        f"{budget_floor:.0f} ₽"
+                    ),
+                    matched_skills=llm_result.matched_skills,
+                    missing_skills=llm_result.missing_skills,
+                    draft_reply=None,
+                    needs_review=False,
+                    review_reason=None,
                 ),
                 applied_rules=applied,
                 deterministic_score=deterministic.score,
