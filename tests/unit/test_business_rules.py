@@ -234,3 +234,52 @@ def test_review_with_partial_overlap_stays_review():
     assert decision.result.needs_review is True
     assert decision.result.recommendation is Recommendation.REVIEW
     assert "no_skill_overlap_with_profile" not in decision.applied_rules
+
+
+def test_budget_above_cap_goes_to_review():
+    """Бюджет выше разумного предела — вероятная ошибка ввода, решает человек.
+
+    Реальный случай: «от 15 000 до 20 000» на площадке разобрали как 1 500 020 000 ₽.
+    Такой заказ нельзя ни откликать, ни отбрасывать автоматически.
+    """
+    broken = Order(
+        id=11,
+        title="Нужен парсер и выгрузка в Excel",
+        description=(
+            "Нужен парсер на Python: ежедневный сбор цен, выгрузка в Excel. "
+            "Объём понятен, срок две недели."
+        ),
+        budget_min=1_500_020_000,
+        budget_max=1_500_020_000,
+    )
+    decision = _decide(broken, _llm_result(), PROFILE_WITH_FLOOR)
+    assert decision.result.recommendation is Recommendation.REVIEW
+    assert decision.result.needs_review is True
+    assert decision.result.match_score is None, "на проверку уходит без выдуманной оценки"
+    assert decision.result.draft_reply is None, "и без готового отклика"
+    assert "budget_above_review_cap" in decision.applied_rules
+    assert "выше предела" in decision.result.review_reason
+
+
+def test_budget_at_cap_is_not_reviewed():
+    """Ровно 500 000 — ещё не повод для проверки: правило строгое «выше»."""
+    at_cap = Order(
+        id=12,
+        title="Telegram-бот на Python с LLM",
+        description=(
+            "Нужен Telegram-бот на Python с интеграцией LLM. Требуется FastAPI, REST API, Docker. "
+            "Бюджет 400000-500000 рублей, срок 3 недели."
+        ),
+        budget_min=400000,
+        budget_max=500000,
+    )
+    decision = _decide(at_cap, _llm_result(), PROFILE_WITH_FLOOR)
+    assert "budget_above_review_cap" not in decision.applied_rules
+
+
+def test_budget_cap_does_not_override_cheap_skip():
+    """Заказ ниже минимума профиля по-прежнему пропуск: правило предела его не перебивает."""
+    decision = _decide(N8N_ORDER, _llm_result(), PROFILE_WITH_FLOOR)
+    assert decision.result.recommendation is Recommendation.SKIP
+    assert "budget_below_profile_minimum" in decision.applied_rules
+    assert "budget_above_review_cap" not in decision.applied_rules

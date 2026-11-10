@@ -233,6 +233,33 @@ class AnalysisService:
                 deterministic_score=deterministic.score,
             )
 
+        # Правило 1.3: бюджет выше разумного предела — вероятная ошибка ввода (например,
+        # диапазон «от 15 000 до 20 000» склеился в 1 500 020 000 ₽ на стороне площадки).
+        # Такой заказ нельзя молча ни откликать, ни отбрасывать: решает человек.
+        cap = self.settings.budget_review_cap_rub
+        if cap and order_budget_top is not None and order_budget_top > cap:
+            applied.append("budget_above_review_cap")
+            return self._Decision(
+                result=AnalysisResult(
+                    match_score=None,
+                    recommendation=Recommendation.REVIEW,
+                    reason=(
+                        f"Бюджет заказа {order_budget_top:.0f} ₽ выше предела {cap:.0f} ₽ — "
+                        "проверьте, нет ли ошибки в данных заказа"
+                    ),
+                    matched_skills=llm_result.matched_skills,
+                    missing_skills=llm_result.missing_skills,
+                    draft_reply=None,
+                    needs_review=True,
+                    review_reason=(
+                        f"Бюджет {order_budget_top:.0f} ₽ выше предела {cap:.0f} ₽: "
+                        "возможна ошибка в данных заказа"
+                    ),
+                ),
+                applied_rules=applied,
+                deterministic_score=deterministic.score,
+            )
+
         # Правило 2 (ТЗ §14.3): соответствие профилю определить не удалось.
         if not deterministic.is_determined:
             applied.append("matching_undetermined")

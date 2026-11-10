@@ -52,6 +52,9 @@ class Settings(BaseSettings):
     match_score_review_threshold: float = 0.35
     llm_score_crosscheck_delta: float = 0.5
     min_draft_reply_chars: int = 80
+    # Верхняя граница разумного бюджета: выше — заказ уходит человеку на проверку.
+    # Ловит ошибки ввода цен на площадках («от 15 000 до 20 000» -> 1 500 020 000 ₽).
+    budget_review_cap_rub: float = 500_000
 
     # --- Frontend ---
     # 127.0.0.1, а не localhost: см. комментарий в frontend/streamlit/api_client.py

@@ -96,7 +96,11 @@ class AnalysisResult(BaseModel):
 graph TD
     L[Ответ LLM] --> R1{Не хватает критичных данных?}
     R1 -->|да| RV[needs_review=true]
-    R1 -->|нет| R2{Соответствие профилю определено?}
+    R1 -->|нет| B1{Бюджет ниже минимума профиля?}
+    B1 -->|да| SK[skip: отказ по цене]
+    B1 -->|нет| B2{Бюджет выше предела проверки?}
+    B2 -->|да| RV
+    B2 -->|нет| R2{Соответствие профилю определено?}
     R2 -->|нет| RV
     R2 -->|да| R3{Модель сама просит проверку?}
     R3 -->|да| RV
@@ -111,11 +115,16 @@ graph TD
     R7 -->|нет| OK2[Результат принимается]
 ```
 
-Все шесть правил живут в `AnalysisService._apply_business_rules()`, и в аудит пишется список
+Все правила живут в `AnalysisService._apply_business_rules()`, и в аудит пишется список
 сработавших правил (`business_rules_applied`) — решение системы всегда объяснимо.
 
+Два правила про деньги стоят первыми, потому что цена решает раньше смысла:
+`budget_below_profile_minimum` (строго ниже минимума профиля — отказ) и
+`budget_above_review_cap` (выше `BUDGET_REVIEW_CAP_RUB`, по умолчанию 500 000 ₽ — на проверку
+человеку, потому что это почти всегда ошибка ввода цены на площадке, а не реальный бюджет).
+
 Пороги настраиваются в `.env`: `MIN_DESCRIPTION_CHARS`, `MATCH_SCORE_REVIEW_THRESHOLD`,
-`LLM_SCORE_CROSSCHECK_DELTA`, `MIN_DRAFT_REPLY_CHARS`.
+`LLM_SCORE_CROSSCHECK_DELTA`, `MIN_DRAFT_REPLY_CHARS`, `BUDGET_REVIEW_CAP_RUB`.
 
 ## 6. Matching Engine: зачем второй, детерминированный расчёт
 
