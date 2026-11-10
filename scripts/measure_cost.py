@@ -27,8 +27,9 @@ import json
 import sqlite3
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -94,12 +95,13 @@ async def run(price_in: float, price_out: float) -> dict:
     with database.session() as session:
         ProfileRepository(session).ensure_default()
 
-    provider = build_llm_provider(settings)
+    provider: Any = build_llm_provider(settings)
     if getattr(provider, "name", "mock") == "mock":
         raise SystemExit("Провайдер mock: задайте LLM_PROVIDER=openai, иначе мерить нечего")
 
-    recorder = UsageRecorder(getattr(provider, "_client").chat.completions.create)
-    getattr(provider, "_client").chat.completions.create = recorder
+    client = provider._client  # у openai-совместимого адаптера это единственная точка доступа к usage
+    recorder = UsageRecorder(client.chat.completions.create)
+    client.chat.completions.create = recorder
 
     ids = order_ids(db_file)
     rows = []
@@ -145,7 +147,7 @@ async def run(price_in: float, price_out: float) -> dict:
     durations = sorted(r["duration_ms"] for r in rows)
 
     return {
-        "measured_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "measured_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "provider": getattr(provider, "name", None),
         "model": getattr(provider, "model", None),
         "database": str(db_file),
