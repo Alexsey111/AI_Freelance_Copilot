@@ -19,6 +19,7 @@ from app.config import PROMPTS_DIR
 from app.domain.models.analysis import AnalysisResult
 from app.domain.models.order import Order
 from app.domain.models.profile import Profile
+from app.domain.privacy import mask_order_payload
 
 PROMPT_VERSION = "v1.0"
 PROMPT_FILE = "order_analysis.txt"
@@ -83,20 +84,25 @@ def build_order_prompt(
     """Собрать промпт: шаблон + факты о заказе и профиле (без додумывания данных)."""
     template = load_prompt_template(prompts_dir)
     facts = {
-        "order": {
-            "id": order.id,
-            "title": order.title,
-            "description": order.description,
-            "budget_min": order.budget_min,
-            "budget_max": order.budget_max,
-            "currency": order.currency,
-            "client_name": order.client_name,
-            "url": order.url,
-            "source": order.source,
-            "missing_data": order.missing_data(
-                (rules or {}).get("min_description_chars", 40)
-            ),
-        },
+        # Заказ уходит внешнему провайдеру, поэтому в промпт попадает только обезличенная
+        # версия (app/domain/privacy.py). Маска ставится здесь, а не в адаптере, чтобы ни один
+        # провайдер не мог её обойти. missing_data считается по исходному тексту.
+        "order": mask_order_payload(
+            {
+                "id": order.id,
+                "title": order.title,
+                "description": order.description,
+                "budget_min": order.budget_min,
+                "budget_max": order.budget_max,
+                "currency": order.currency,
+                "client_name": order.client_name,
+                "url": order.url,
+                "source": order.source,
+                "missing_data": order.missing_data(
+                    (rules or {}).get("min_description_chars", 40)
+                ),
+            }
+        ),
         "profile": {
             "id": profile.id,
             "name": profile.name,
