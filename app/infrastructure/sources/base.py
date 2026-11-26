@@ -8,12 +8,16 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any, Protocol, runtime_checkable
 
 from app.domain.models.order import Order, OrderStatus
 from app.domain.models.order import OrderSource as OrderSourceKind
+from app.domain.money import normalize_budget
+
+logger = logging.getLogger(__name__)
 
 # Внимание: имя OrderSource занято интерфейсом источника (ТЗ §18), поэтому доменный
 # перечень источников заказа импортируется под псевдонимом OrderSourceKind.
@@ -58,13 +62,16 @@ def normalize_external_order(
     Ничего не выдумывает: если бюджета нет, он остаётся None (ТЗ §29.2).
     """
     source = external.source if external.source else OrderSourceKind.MANUAL.value
+    # Деньги приводим к числу здесь, на границе: дальше бюджет сравнивается с минимумом
+    # профиля, и строка в этом сравнении либо падает, либо сравнивается посимвольно.
+    budget = normalize_budget(external.budget_min, external.budget_max)
     order = Order(
         external_id=external.external_id,
         source=source,
         title=(external.title or "").strip(),
         description=(external.description or "").strip(),
-        budget_min=external.budget_min,
-        budget_max=external.budget_max,
+        budget_min=budget.low,
+        budget_max=budget.high,
         currency=external.currency or "RUB",
         url=external.url,
         client_name=external.client_name,
@@ -72,9 +79,16 @@ def normalize_external_order(
         needs_review=False,
         raw_input=external.raw or None,
     )
+    if budget.needs_human:
+        logger.warning(
+            "Бюджет заказа не распознан (%s): budget_min=%r, budget_max=%r",
+            budget.note,
+            external.budget_min,
+            external.budget_max,
+        )
     # Предварительная пометка: критически важных данных не хватает ---
     # окончательное решение всё равно принимает бизнес-логика (analysis_service).
-    order.needs_review = bool(order.missing_data(min_description_chars))
+    order.needs_review = bool(order.missing_data(min_description_chars)) or budget.needs_human
     if external.fetched_at is not None:
         order.created_at = external.fetched_at
     return order
