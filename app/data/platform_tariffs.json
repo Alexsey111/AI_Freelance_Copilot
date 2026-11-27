@@ -1,0 +1,136 @@
+{
+  "checked_at": "2026-11-27",
+  "note": "Цены проверены на открытых страницах площадок 27.11.2026. Тариф не персональный: он одинаков для всех исполнителей площадки, поэтому его можно хранить как данные, а не как настройку пользователя.",
+  "platforms": [
+    {
+      "key": "flru",
+      "title": "FL.ru",
+      "country": "RU",
+      "status": "verified",
+      "model": "packages",
+      "free_per_month": 0,
+      "free_note": "Бесплатных откликов нет; но в заказах с опцией «Для всех» (заказчик заплатил 1 500 ₽) отвечать можно без отклика из пакета.",
+      "packages": [
+        {"title": "20 откликов / 10 дней", "quota": 20, "price": 1000, "days": 10, "note": "покупается один раз, только для новых аккаунтов"},
+        {"title": "30 откликов / 30 дней", "quota": 30, "price": 2400, "days": 30, "note": "неиспользованные сгорают"},
+        {"title": "60 откликов / 60 дней", "quota": 60, "price": 4800, "days": 60, "note": "неиспользованные сгорают"}
+      ],
+      "single_response": 80,
+      "single_note": "один платный отклик — однократно на аккаунт, без верификации",
+      "subscription": null,
+      "extra": [
+        {"title": "Специализация (размещение в каталоге)", "price": 150, "unit": "день"},
+        {"title": "Поднятие в категории", "price": 150, "unit": "день"},
+        {"title": "Комиссия за отзыв", "price": "100 ₽ до 1 800 ₽; 5,5% до 5 000 ₽; 4,5% до 10 000 ₽; 4% до 20 000 ₽; 3% до 50 000 ₽; 2,5% свыше", "unit": "по бюджету заказа"}
+      ],
+      "source": "https://st.fl.ru/about/documents/appendix_1_price.pdf"
+    },
+    {
+      "key": "freelance_ru",
+      "title": "Freelance.ru",
+      "country": "RU",
+      "status": "verified",
+      "model": "subscription_plus_packages",
+      "free_per_month": 0,
+      "free_note": "Обычный аккаунт бесплатный, но откликов в нём нет: «откликаться можно только из купленных пакетов».",
+      "packages": [
+        {"title": "10 откликов / 30 дней", "quota": 10, "price": 500, "days": 30},
+        {"title": "50 откликов / 30 дней", "quota": 50, "price": 2250, "days": 30},
+        {"title": "100 откликов / 30 дней", "quota": 100, "price": 4000, "days": 30}
+      ],
+      "single_response": null,
+      "subscription": [
+        {"title": "Премиум", "price": 1500, "days": 30, "quota": 30, "note": "плюс доступ к заданиям «Только для Премиум» и уведомления"},
+        {"title": "Про", "price": 3500, "days": 30, "quota": 600, "note": "20 откликов в сутки, значок и расширенный профиль"}
+      ],
+      "extra": [],
+      "source": "https://freelance.ru/services/pro"
+    },
+    {
+      "key": "kwork",
+      "title": "Kwork",
+      "country": "RU",
+      "status": "partial",
+      "model": "credits_by_level",
+      "free_per_month": 20,
+      "free_note": "Коннекты даются по уровню продавца: Новичок — 20, Продвинутый — 50, Профессионал — 80; пополнение раз в 30 дней. Одно предложение на бирже = 1 коннект.",
+      "packages": [],
+      "single_response": null,
+      "subscription": null,
+      "extra": [
+        {"title": "Комиссия продавца", "price": "20% до 30 000 ₽ оборота с клиентом; 12% до 300 000 ₽; 7,5% свыше", "unit": "с заказа"},
+        {"title": "Вывод через Solar Staff", "price": "3,9%", "unit": "с вывода"}
+      ],
+      "source": "https://kwork.ru/terms_of_service",
+      "caveat": "Цена докупки коннектов публично не заявлена — цифры видны только в кабинете. Комиссия взята из блога Kwork, перед расчётом сверить."
+    },
+    {
+      "key": "workzilla",
+      "title": "Work-Zilla",
+      "country": "RU",
+      "status": "partial",
+      "model": "subscription",
+      "free_per_month": 0,
+      "free_note": "Отклики не продаются поштучно: платишь за доступ к заданиям по подписке.",
+      "packages": [],
+      "single_response": null,
+      "subscription": [
+        {"title": "Подписка исполнителя", "price": 1290, "days": 30, "quota": null, "note": "по акции после вступительного теста — 890 ₽"},
+        {"title": "Подписка на 60 дней", "price": 1690, "days": 60, "quota": null, "note": "со слов площадки; период уточнять в кабинете"}
+      ],
+      "extra": [],
+      "source": "https://work-zilla.com/subscribewz",
+      "caveat": "Страница с ценами датирована 2025 годом: цифру перед оплатой смотреть в кабинете."
+    },
+    {
+      "key": "freelancer",
+      "title": "Freelancer.com",
+      "country": "EN",
+      "status": "verified",
+      "model": "free_quota_plus_membership",
+      "free_per_month": 6,
+      "free_note": "Бесплатный участник получает 6 ставок в месяц; для любой ставки на счету нужно держать минимум $20.",
+      "packages": [],
+      "single_response": null,
+      "subscription": [
+        {"title": "Basic", "price": 4.99, "days": 30, "quota": 50, "currency": "USD", "note": "50 ставок в месяц"},
+        {"title": "Plus", "price": 9.99, "days": 30, "quota": 100, "currency": "USD", "note": "100 ставок, первый месяц бесплатно"},
+        {"title": "Professional", "price": 49.0, "days": 30, "quota": 300, "currency": "USD", "note": "300 ставок, аналитика ставок"}
+      ],
+      "extra": [
+        {"title": "Комиссия с заказа", "price": "10% или $5 (что больше)", "unit": "с заказа"},
+        {"title": "Проверка Verified", "price": 99.0, "unit": "разово", "currency": "USD"}
+      ],
+      "source": "https://www.freelancer.com/feesandcharges"
+    },
+    {
+      "key": "peopleperhour",
+      "title": "PeoplePerHour",
+      "country": "EN",
+      "status": "partial",
+      "model": "free_quota_plus_credits",
+      "free_per_month": 15,
+      "free_note": "15 бесплатных кредитов на предложения каждый месяц; сверх лимита кредиты докупаются.",
+      "packages": [],
+      "single_response": null,
+      "subscription": null,
+      "extra": [],
+      "source": "https://www.peopleperhour.com/static/terms",
+      "caveat": "Цена докупки кредитов и условия подписок закрыты: страница тарифов отдаёт 404, справка — за проверкой Cloudflare."
+    },
+    {
+      "key": "upwork",
+      "title": "Upwork",
+      "country": "EN",
+      "status": "blocked",
+      "model": "credits",
+      "free_per_month": null,
+      "free_note": "Из России недоступен: сайт отдаёт «IP/Country Block». Как канал не рассматриваем.",
+      "packages": [],
+      "single_response": null,
+      "subscription": null,
+      "extra": [],
+      "source": "https://www.upwork.com/pricing"
+    }
+  ]
+}

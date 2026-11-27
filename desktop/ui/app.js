@@ -4,6 +4,8 @@ const API = (window.desktop && window.desktop.apiBase) || 'http://127.0.0.1:8000
 
 const state = {
   catalog: [],
+  platforms: [],
+  platformsChecked: '',
   responses: [],
   funnel: null,
   profile: null,
@@ -364,6 +366,63 @@ function renderQueue() {
   });
 }
 
+// --- Площадки ---
+
+function money(value, currency) {
+  if (value == null) return '—';
+  if (currency === 'USD') return '$' + value.toLocaleString('ru-RU');
+  return value.toLocaleString('ru-RU') + ' ₽';
+}
+
+function renderPlatforms() {
+  $('platforms-checked').textContent = state.platformsChecked
+    ? `Проверено: ${state.platformsChecked}. Источник указан у каждой площадки.`
+    : '';
+  const box = $('platforms-list');
+  box.innerHTML = '';
+  state.platforms.forEach((item) => {
+    const card = document.createElement('div');
+    card.className = 'catalog-group';
+    card.innerHTML = `
+      <span class="catalog-title"></span>
+      <p class="platform-line"></p>
+      <p class="platform-line free"></p>
+      <div class="catalog-items"></div>
+      <p class="platform-line caveat"></p>`;
+    card.querySelector('.catalog-title').textContent = `${item.title} — ${item.status_label}`;
+    card.querySelector('.platform-line').textContent =
+      item.best_price != null
+        ? `Попытка: ${money(item.best_price, item.best_price_currency)}` +
+          (item.best_price_title ? ` · ${item.best_price_title}` : '')
+        : 'Цена попытки видна только в кабинете';
+    card.querySelector('.free').textContent = item.free_per_month
+      ? `Бесплатно: ${item.free_per_month} в месяц. ${item.free_note}`
+      : item.free_note;
+    const offers = card.querySelector('.catalog-items');
+    [...item.packages, ...item.subscription].forEach((offer) => {
+      const chip = document.createElement('span');
+      chip.className = 'skill-chip picked';
+      chip.textContent = `${offer.title} — ${money(offer.price, offer.currency)}` +
+        (offer.note ? ` · ${offer.note}` : '');
+      offers.appendChild(chip);
+    });
+    item.extra.forEach((row) => {
+      const chip = document.createElement('span');
+      chip.className = 'skill-chip';
+      chip.textContent = `${row.title}: ${row.price} ${row.unit}`;
+      offers.appendChild(chip);
+    });
+    const caveat = card.querySelector('.caveat');
+    caveat.textContent = item.caveat || '';
+    const source = document.createElement('a');
+    source.href = item.source;
+    source.className = 'source-link';
+    source.textContent = 'источник цен';
+    caveat.appendChild(source);
+    box.appendChild(card);
+  });
+}
+
 // --- Отклики ---
 
 function renderResponses() {
@@ -408,6 +467,7 @@ $('response-add').addEventListener('click', async () => {
       method: 'POST',
       body: JSON.stringify({
         order_id: orderId,
+        platform: $('response-platform').value || 'manual',
         cost_rub: Number.isFinite(cost) && cost > 0 ? cost : null,
         status: 'sent',
       }),
@@ -418,6 +478,26 @@ $('response-add').addEventListener('click', async () => {
     note('response-note', error.message, true);
   }
 });
+
+function fillPlatformSelect() {
+  const select = $('response-platform');
+  state.platforms.forEach((item) => {
+    const option = document.createElement('option');
+    option.value = item.key;
+    option.textContent =
+      item.best_price != null
+        ? `${item.title} (${money(item.best_price, item.best_price_currency)} за попытку)`
+        : item.title;
+    option.dataset.cost = item.best_price != null ? String(item.best_price) : '';
+    select.appendChild(option);
+  });
+  select.addEventListener('change', () => {
+    const chosen = select.selectedOptions[0];
+    if (chosen && chosen.dataset.cost) {
+      $('response-cost').value = chosen.dataset.cost;
+    }
+  });
+}
 
 async function refreshResponses() {
   const [responses, funnel] = await Promise.all([api('/responses'), api('/responses/funnel')]);
@@ -463,9 +543,10 @@ function renderRuns() {
 async function loadAll() {
   setStatus('загружаю данные…');
   try {
-    const [catalog, profile, norms, settings, workload, queue, runs, responses, funnel] =
+    const [catalog, platforms, profile, norms, settings, workload, queue, runs, responses, funnel] =
       await Promise.all([
-      api('/time-norms/skills-catalog'),
+        api('/time-norms/skills-catalog'),
+        api('/platforms'),
       api('/profiles/active'),
       api('/time-norms'),
       api('/settings'),
@@ -476,6 +557,9 @@ async function loadAll() {
         api('/responses/funnel'),
       ]);
     state.catalog = catalog.professions;
+    state.platforms = platforms.platforms;
+    state.platformsChecked = platforms.checked_at;
+    fillPlatformSelect();
     Object.assign(state, { profile, norms, settings, workload, queue, runs, responses, funnel });
     renderProfile();
     renderCatalog();
@@ -483,6 +567,7 @@ async function loadAll() {
     renderWorkload();
     renderSettings();
     renderQueue();
+    renderPlatforms();
     renderResponses();
     renderRuns();
     setStatus('готово');
@@ -503,6 +588,7 @@ window.selftest = {
   workload: () => state.workload || { capacity_hours: null },
   queue: () => state.queue || { total: null },
   funnel: () => state.funnel,
+  platforms: () => state.platforms,
   runs: () => state.runs,
   show,
 };

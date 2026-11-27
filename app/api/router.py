@@ -9,6 +9,7 @@ from app.api.routes import (
     audit,
     health,
     orders,
+    platforms,
     responses,
     review,
     runs,
@@ -26,3 +27,4 @@ api_v1.include_router(health.router)
 api_v1.include_router(settings.router)
 api_v1.include_router(time_norms.router)
 api_v1.include_router(responses.router)
+api_v1.include_router(platforms.router)

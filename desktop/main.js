@@ -227,6 +227,14 @@ async function selftest() {
   const runs = await evaluate('window.selftest.runs()');
   expect('прогоны отвечают', Array.isArray(runs));
 
+  const platforms = await evaluate('window.selftest.platforms()');
+  const flru = (platforms || []).find((item) => item.key === 'flru');
+  expect(
+    'тарифы площадок загружены',
+    (platforms || []).length >= 7 && Boolean(flru) && flru.best_price === 50,
+    flru ? `FL.ru: ${flru.best_price} ₽ за попытку, площадок ${platforms.length}` : ''
+  );
+
   const funnel = await evaluate('window.selftest.funnel()');
   expect(
     'воронка откликов считается',
@@ -235,7 +243,16 @@ async function selftest() {
   );
 
   // Переключение экранов: каждый таб должен отрисоваться без ошибок.
-  for (const tab of ['profile', 'norms', 'workload', 'settings', 'queue', 'responses', 'runs']) {
+  for (const tab of [
+    'profile',
+    'norms',
+    'workload',
+    'settings',
+    'queue',
+    'platforms',
+    'responses',
+    'runs',
+  ]) {
     const ok = await evaluate(`window.selftest.show('${tab}')`);
     expect(`экран «${tab}» открывается`, Boolean(ok));
   }
@@ -264,6 +281,13 @@ async function smoke() {
   // ставим сторожевой таймер: лучше провал с сообщением, чем молчаливое зависание.
   win.showInactive();
   await new Promise((r) => setTimeout(r, 1500));
+  const tabIndex = process.argv.indexOf('--smoke-tab');
+  if (tabIndex > -1 && process.argv[tabIndex + 1]) {
+    const tab = process.argv[tabIndex + 1];
+    await win.webContents.executeJavaScript(`window.selftest.show('${tab}')`, true);
+    trace('smoke: tab ' + tab);
+    await new Promise((r) => setTimeout(r, 700));
+  }
   trace('smoke: capturing');
   const image = await Promise.race([
     win.webContents.capturePage(),

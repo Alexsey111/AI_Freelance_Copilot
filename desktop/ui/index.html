@@ -17,6 +17,7 @@
         <button data-tab="workload">Загрузка недели</button>
         <button data-tab="settings">Правила</button>
         <button data-tab="queue">Очередь проверки</button>
+        <button data-tab="platforms">Площадки</button>
         <button data-tab="responses">Отклики</button>
         <button data-tab="runs">Прогоны</button>
       </nav>
@@ -157,7 +158,13 @@
           Режим отправки задаётся в «Правилах»: черновик, полуавтомат или автоотправка.
         </p>
         <div class="cards" id="funnel-cards"></div>
-        <div class="grid two">
+        <div class="grid three">
+          <label class="field">
+            <span>Площадка</span>
+            <select id="response-platform">
+              <option value="manual">вручную</option>
+            </select>
+          </label>
           <label class="field">
             <span>Записать отклик: номер заказа</span>
             <input id="response-order" type="number" min="1" placeholder="36" />
@@ -183,6 +190,18 @@
           </thead>
           <tbody></tbody>
         </table>
+      </section>
+
+      <!-- Площадки -->
+      <section id="tab-platforms" class="tab-panel">
+        <h1>Площадки: сколько стоит попытка</h1>
+        <p class="hint">
+          Тариф одинаков для всех исполнителей площадки, поэтому он хранится как данные, а не
+          как ваша настройка. Цифры сверены на открытых страницах; там, где цена закрыта
+          кабинетом, это написано прямо.
+        </p>
+        <p class="hint" id="platforms-checked"></p>
+        <div class="catalog" id="platforms-list"></div>
       </section>
 
       <!-- Прогоны -->
