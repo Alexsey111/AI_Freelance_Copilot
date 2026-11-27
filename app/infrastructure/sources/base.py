@@ -46,6 +46,7 @@ class ExternalOrder:
     # Конкуренция: просмотры и число откликов. На FL.ru видны в карточке.
     views: int | None = None
     responses: int | None = None
+    estimated_hours: float | None = None
 
 
 @runtime_checkable
@@ -86,6 +87,7 @@ def normalize_external_order(
         published_at=external.published_at,
         views=external.views,
         responses=external.responses,
+        estimated_hours=external.estimated_hours,
     )
     if budget.needs_human:
         logger.warning(

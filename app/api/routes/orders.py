@@ -61,6 +61,7 @@ def _to_out(order: Order, latest=None) -> OrderOut:
         queued_at=order.queued_at,
         views=order.views,
         responses=order.responses,
+        estimated_hours=order.estimated_hours,
         latest_analysis=_summary(latest),
     )
 
@@ -99,6 +100,7 @@ def create_order(payload: OrderCreate, service: OrderService = Depends(get_order
             published_at=payload.published_at,
             views=payload.views,
             responses=payload.responses,
+            estimated_hours=payload.estimated_hours,
         )
     )
     return OrderCreateResponse(

@@ -31,6 +31,7 @@ def _to_domain(model: OrderModel) -> Order:
         queued_at=model.queued_at,
         views=model.views,
         responses=model.responses,
+        estimated_hours=model.estimated_hours,
     )
 
 
@@ -58,6 +59,7 @@ class OrderRepository:
             published_at=order.published_at,
             views=order.views,
             responses=order.responses,
+            estimated_hours=order.estimated_hours,
             # Заказ, который сразу требует проверки, встаёт в очередь в момент создания:
             # иначе «висит дольше суток» будет считаться не с того момента.
             queued_at=utcnow() if order.needs_review else None,

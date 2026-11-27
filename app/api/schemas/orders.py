@@ -35,6 +35,14 @@ class OrderCreate(BaseModel):
     responses: int | None = Field(
         default=None, ge=0, description="Уже оставлено откликов: главный признак конкуренции"
     )
+    estimated_hours: float | None = Field(
+        default=None,
+        gt=0,
+        description=(
+            "Оценка трудозатрат в часах. Нужна, чтобы считать ставку ₽/час: "
+            "бюджет без часов ничего не говорит о выгоде"
+        ),
+    )
 
     @field_validator("budget_max")
     @classmethod
@@ -76,6 +84,7 @@ class OrderOut(BaseModel):
     queued_at: datetime | None = None
     views: int | None = None
     responses: int | None = None
+    estimated_hours: float | None = None
     latest_analysis: AnalysisSummaryOut | None = None
 
 

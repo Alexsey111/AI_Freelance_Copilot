@@ -67,6 +67,11 @@ class Settings(BaseSettings):
     # От 10 откликов шанс мал, от 20 клиент их даже не прочитает.
     competition_max_responses: int = 10
     competition_hard_responses: int = 20
+    # --- Ставка за час (миграция 0005) ---
+    # Бюджет сам по себе ничего не говорит: 15 000 ₽ за 8 часов лучше 50 000 ₽ за 60.
+    # Порог бюджета остаётся, но как «мягкий»: мелкий заказ проходит, если ставка высокая.
+    min_rate_rub_per_hour: float = 1_500
+    available_hours_per_week: float = 45.0
 
     # --- Frontend ---
     # 127.0.0.1, а не localhost: см. комментарий в frontend/streamlit/api_client.py

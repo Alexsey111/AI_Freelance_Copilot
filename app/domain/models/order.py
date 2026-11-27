@@ -58,6 +58,8 @@ class Order:
     # Сколько смотрели карточку и сколько уже откликнулось. None — данных нет.
     views: int | None = None
     responses: int | None = None
+    # Оценка трудозатрат в часах: без неё нельзя посчитать ставку ₽/час.
+    estimated_hours: float | None = None
 
     @property
     def full_text(self) -> str:

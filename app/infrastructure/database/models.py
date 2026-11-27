@@ -59,6 +59,8 @@ class OrderModel(Base):
     # Конкуренция по карточке заказа (миграция 0004). NULL — данных нет, это не ноль.
     views: Mapped[int | None] = mapped_column(Integer, nullable=True)
     responses: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Наша оценка трудозатрат в часах (миграция 0005). NULL — не оценено.
+    estimated_hours: Mapped[float | None] = mapped_column(Float, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, onupdate=utcnow

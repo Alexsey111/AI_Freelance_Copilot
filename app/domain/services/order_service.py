@@ -36,6 +36,7 @@ class OrderCreateInput:
     published_at: datetime | None = None
     views: int | None = None
     responses: int | None = None
+    estimated_hours: float | None = None
 
 
 @dataclass(slots=True)
@@ -77,6 +78,7 @@ class OrderService:
             published_at=payload.published_at,
             views=payload.views,
             responses=payload.responses,
+            estimated_hours=payload.estimated_hours,
         )
         order = normalize_external_order(
             external, min_description_chars=self.settings.min_description_chars

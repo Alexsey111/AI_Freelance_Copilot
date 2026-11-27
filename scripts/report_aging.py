@@ -36,6 +36,9 @@ from app.domain.aging import (  # noqa: E402
 )
 from app.domain.competition import LABELS as COMPETITION_LABELS  # noqa: E402
 from app.domain.competition import measure, verdict  # noqa: E402
+from app.domain.rate import LABELS as RATE_LABELS  # noqa: E402
+from app.domain.rate import orders_per_week, rate_for  # noqa: E402
+from app.domain.rate import verdict as rate_verdict  # noqa: E402
 
 ORDER_OF_BUCKETS = [FRESH, USABLE, STALE, DEAD, UNKNOWN]
 
@@ -57,7 +60,7 @@ def build_report(db: Path, *, now: datetime | None = None) -> str:
     try:
         orders = conn.execute(
             "SELECT id, title, status, needs_review, published_at, queued_at, created_at, "
-            "views, responses FROM orders ORDER BY id"
+            "views, responses, estimated_hours, budget_min, budget_max FROM orders ORDER BY id"
         ).fetchall()
     finally:
         conn.close()
@@ -137,6 +140,42 @@ def build_report(db: Path, *, now: datetime | None = None) -> str:
             "Данных нет: число откликов появляется только из карточки площадки "
             "(на FL.ru оно есть рядом со временем публикации), в ручном вводе его нет — "
             "и ноль здесь подставлять нельзя."
+        )
+
+    rates = []
+    for row in orders:
+        order_id, title = row[0], row[1]
+        hours, budget_min, budget_max = row[8], row[9], row[10]
+        rate = rate_for(budget_min, budget_max, hours)
+        if rate.per_hour is None:
+            continue
+        rates.append(
+            (
+                order_id,
+                title,
+                budget_min if budget_min is not None else budget_max,
+                hours,
+                rate.per_hour,
+                RATE_LABELS[rate_verdict(rate)],
+                orders_per_week(hours),
+            )
+        )
+
+    lines += ["", "## Ставка ₽/час (бюджет ÷ оценка часов)", ""]
+    if rates:
+        rates.sort(key=lambda item: item[4] or 0, reverse=True)
+        lines += [
+            "| id | заказ | бюджет | часов | ₽/час | вердикт | таких в неделю |",
+            "|---|---|---|---|---|---|---|",
+        ]
+        for order_id, title, budget, hours, per_hour, label, capacity in rates:
+            lines.append(
+                f"| {order_id} | {title[:45]} | {budget} | {hours} | {per_hour} | {label} | {capacity} |"
+            )
+    else:
+        lines.append(
+            "Ни у одного заказа нет оценки часов: бюджет без часов не даёт ставки, "
+            "а абсолютный порог бюджета отсекает ровно те заказы, которые могли бы окупиться."
         )
 
     lines += ["", "## Долг в очереди (по `queued_at`)", ""]
