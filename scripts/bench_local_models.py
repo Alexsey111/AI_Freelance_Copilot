@@ -155,6 +155,10 @@ def score_call(data: dict, elapsed: float, ref: sqlite3.Row) -> dict:
         "match_score": parsed.get("match_score"),
         "draft_chars": len(draft) if isinstance(draft, str) else 0,
         "draft_ok": isinstance(draft, str) and len(draft) >= MIN_DRAFT,
+        # «Полный ответ» — либо написан черновик, либо модель сама отправила заказ человеку.
+        # Второе тоже работа: решение review без черновика логично, а не брак.
+        "complete": (isinstance(draft, str) and len(draft) >= MIN_DRAFT)
+        or parsed.get("recommendation") == "review",
         "needs_review": parsed.get("needs_review"),
         "elapsed_s": self_round(elapsed),
         "tokens_in": data.get("prompt_eval_count", 0),
@@ -224,25 +228,46 @@ def report() -> None:
         "уже лежащее в базе (`analyses`). «Совпало» — локальная модель дала ту же",
         "рекомендацию (`apply` / `skip` / `review`).",
         "",
-        "| Модель | Заказов | JSON валиден | Все поля | Черновик ок | Совпало с облачной | Секунд/заказ | Ток/с |",
-        "|---|---|---|---|---|---|---|---|",
+        "«Полный ответ» — либо черновик отклика написан, либо модель сама отправила заказ",
+        "человеку (`review`): решение без черновика в этом случае логично, а не брак.",
+        "",
+        "| Модель | Заказов | JSON валиден | Все поля | Черновик ок | Полный ответ | Совпало с облачной | Секунд/заказ | Ток/с |",
+        "|---|---|---|---|---|---|---|---|---|",
     ]
     for model, items in by_model.items():
         n = len(items)
         valid = sum(1 for i in items if i.get("json_valid"))
         full = sum(1 for i in items if i.get("fields_present") == len(REQUIRED))
         draft = sum(1 for i in items if i.get("draft_ok"))
+        # Старые строки JSONL писались до появления поля "complete" — считаем по смыслу.
+        complete = sum(
+            1
+            for i in items
+            if i.get("complete", i.get("draft_ok") or i.get("recommendation") == "review")
+        )
         match = sum(1 for i in items if i.get("match"))
         avg_s = sum(i.get("elapsed_s", 0) for i in items) / n if n else 0
         avg_tps = sum(i.get("tok_per_s", 0) for i in items) / n if n else 0
         lines.append(
             f"| {model.split('/')[-1][:40]} | {n} | {valid}/{n} | {full}/{n} | {draft}/{n} "
-            f"| {match}/{n} | {avg_s:.0f} | {avg_tps:.1f} |"
+            f"| {complete}/{n} | {match}/{n} | {avg_s:.0f} | {avg_tps:.1f} |"
         )
     lines += [
         "",
         "Как читать: «все поля» важнее «JSON валиден». Валидный JSON без черновика отклика",
         "ядро всё равно отправит на проверку человеку — то есть работа не сделана.",
+        "",
+        "## Что с этим делать",
+        "",
+        "- Модель, которая ни разу не дала валидный JSON, не годится ни на какую роль:",
+        "  её ответ придётся переспрашивать, а переспрос — это ещё столько же времени.",
+        "- Модель, которая быстро и точно повторяет решение, но не пишет текст, годится",
+        "  как фильтр первого прохода: дешёвая сортировка «брать / не брать», черновик",
+        "  пишет вторая модель или человек.",
+        "- Модель, которая пишет черновик, но думает три минуты на заказ, годится для",
+        "  пакетной ночной обработки, а не для потока «пришёл заказ — ответь сейчас».",
+        "- Всё это измерено на процессоре без видеокарты: с нормальной GPU времена упадут",
+        "  в разы, а соотношение качества не изменится.",
         "",
     ]
     REPORT_FILE.write_text("\n".join(lines), encoding="utf-8")
