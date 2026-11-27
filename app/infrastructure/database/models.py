@@ -216,3 +216,49 @@ class RunModel(Base):
 
     def __repr__(self) -> str:  # pragma: no cover - debug helper
         return f"<RunModel id={self.id} kind={self.kind!r} status={self.status!r}>"
+
+
+class SettingModel(Base):
+    """settings --- правила работы, изменяемые пользователем (миграция 0008).
+
+    Отдельная таблица, а не .env: правку делает владелец программы в окне настроек,
+    без перезапуска и без доступа к файлам. Значение хранится строкой и приводится
+    к типу через реестр правил --- так один механизм обслуживает и число, и слово.
+    """
+
+    __tablename__ = "settings"
+
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    value: Mapped[str] = mapped_column(Text, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_by: Mapped[str] = mapped_column(String(64), default="user", nullable=False)
+
+
+class SettingAuditModel(Base):
+    """settings_audit --- история изменений правил (миграция 0008)."""
+
+    __tablename__ = "settings_audit"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    key: Mapped[str] = mapped_column(String(64), nullable=False)
+    old_value: Mapped[str | None] = mapped_column(Text, nullable=True)
+    new_value: Mapped[str | None] = mapped_column(Text, nullable=True)
+    changed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    changed_by: Mapped[str] = mapped_column(String(64), default="user", nullable=False)
+
+
+class TimeNormModel(Base):
+    """time_norms --- сколько часов уходит на тип задачи (миграция 0009).
+
+    Норма нужна, чтобы оценивать заказ без ручного ввода часов каждый раз и чтобы
+    показать распределение времени: сколько недели съедает боты, парсеры, интеграции.
+    """
+
+    __tablename__ = "time_norms"
+
+    task_kind: Mapped[str] = mapped_column(String(32), primary_key=True)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    hours: Mapped[float] = mapped_column(Float, nullable=False)
+    keywords: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

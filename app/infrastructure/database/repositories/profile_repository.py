@@ -77,6 +77,27 @@ class ProfileRepository:
         self.session.refresh(model)
         return _to_domain(model)
 
+    def update_profile(self, profile_id: int, changes: dict) -> Profile | None:
+        """Обновить переданные поля профиля. Не переданное — не трогаем."""
+        model = self.session.get(ProfileModel, profile_id)
+        if model is None:
+            return None
+        if "name" in changes and changes["name"] is not None:
+            model.name = changes["name"].strip()
+        if "summary" in changes and changes["summary"] is not None:
+            model.summary = changes["summary"].strip()
+        if "skills" in changes and changes["skills"] is not None:
+            model.skills = [skill.strip() for skill in changes["skills"] if skill and skill.strip()]
+        if "experience" in changes and changes["experience"] is not None:
+            model.experience = changes["experience"].strip()
+        if "portfolio" in changes and changes["portfolio"] is not None:
+            model.portfolio = list(changes["portfolio"])
+        if "preferences" in changes and changes["preferences"] is not None:
+            model.preferences = dict(changes["preferences"])
+        self.session.flush()
+        self.session.refresh(model)
+        return _to_domain(model)
+
     def ensure_default(self) -> Profile:
         """Гарантировать наличие профиля по умолчанию (чтобы UI работал "из коробки")."""
         active = self.get_active()

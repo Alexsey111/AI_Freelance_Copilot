@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.api.dependencies import get_app_settings, get_llm_provider, get_session
 from app.api.schemas.audit import HealthOut, ProviderOut
-from app.api.schemas.profiles import ProfileOut, ProfileSkillsUpdate
+from app.api.schemas.profiles import ProfileOut, ProfileSkillsUpdate, ProfileUpdate
 from app.config import Settings
 from app.infrastructure.database.repositories import ProfileRepository
 from app.infrastructure.llm.base import PROMPT_VERSION
@@ -66,6 +66,26 @@ def active_profile(session=Depends(get_session)):
     repository = ProfileRepository(session)
     profile = repository.get_active() or repository.ensure_default()
     return ProfileOut(**asdict(profile))
+
+
+@router.patch(
+    "/profiles/{profile_id}",
+    response_model=ProfileOut,
+    summary="Изменить профиль исполнителя",
+    description="Навыки, опыт, портфолио и условия работы — то, по чему система отбирает заказы.",
+)
+def update_profile(profile_id: int, payload: ProfileUpdate, session=Depends(get_session)):
+    repository = ProfileRepository(session)
+    if repository.get(profile_id) is None:
+        raise HTTPException(status_code=404, detail=f"Профиль #{profile_id} не найден")
+    changes = payload.model_dump(exclude_unset=True)
+    if not changes:
+        raise HTTPException(status_code=422, detail="Не передано ни одного поля для изменения")
+    if "skills" in changes and changes["skills"] is not None and not changes["skills"]:
+        raise HTTPException(status_code=422, detail="Список навыков не может быть пустым")
+    updated = repository.update_profile(profile_id, changes)
+    session.commit()
+    return ProfileOut(**asdict(updated))
 
 
 @router.post(

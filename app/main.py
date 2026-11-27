@@ -19,6 +19,7 @@ from app.config import Settings, get_settings
 from app.domain.models.analysis import AnalysisResult
 from app.domain.run_context import RUN_HEADER, run_scope
 from app.infrastructure.database.database import Database
+from app.infrastructure.database.migrate import apply_migrations
 from app.infrastructure.database.repositories import ProfileRepository
 from app.infrastructure.llm.factory import build_llm_provider
 
@@ -39,6 +40,10 @@ def create_app(settings: Settings | None = None, llm_provider=None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         database.create_all()
+        # Миграции применяются сами при запуске: иначе новая версия программы открывает
+        # старую базу без новых колонок и падает на первом же запросе. Для окна на Windows
+        # это обязательное поведение — пользователь не должен помнить про команду в терминале.
+        apply_migrations(database.url)
         with database.session() as session:
             ProfileRepository(session).ensure_default()
         yield

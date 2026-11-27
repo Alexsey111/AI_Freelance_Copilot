@@ -5,6 +5,8 @@ from app.infrastructure.database.repositories.audit_repository import AuditRepos
 from app.infrastructure.database.repositories.order_repository import OrderRepository
 from app.infrastructure.database.repositories.profile_repository import ProfileRepository
 from app.infrastructure.database.repositories.run_repository import RunRepository
+from app.infrastructure.database.repositories.settings_repository import SettingsRepository
+from app.infrastructure.database.repositories.time_norm_repository import TimeNormRepository
 
 __all__ = [
     "AnalysisRepository",
@@ -12,4 +14,6 @@ __all__ = [
     "OrderRepository",
     "ProfileRepository",
     "RunRepository",
+    "SettingsRepository",
+    "TimeNormRepository",
 ]
