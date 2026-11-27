@@ -41,6 +41,8 @@ class ExternalOrder:
     client_name: str | None = None
     raw: dict[str, Any] = field(default_factory=dict)
     fetched_at: datetime | None = None
+    # Когда заказ появился на площадке. Источники, которые этого не отдают, оставляют None.
+    published_at: datetime | None = None
 
 
 @runtime_checkable
@@ -78,6 +80,7 @@ def normalize_external_order(
         status=OrderStatus.NEW.value,
         needs_review=False,
         raw_input=external.raw or None,
+        published_at=external.published_at,
     )
     if budget.needs_human:
         logger.warning(

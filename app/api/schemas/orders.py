@@ -24,6 +24,13 @@ class OrderCreate(BaseModel):
     source: str = Field(default="manual", max_length=32)
     external_id: str | None = Field(default=None, max_length=128)
     raw_input: dict | None = None
+    published_at: datetime | None = Field(
+        default=None,
+        description=(
+            "Когда заказ опубликован на площадке. От этого зависит актуальность: "
+            "к суткам отклик бесполезен независимо от качества"
+        ),
+    )
 
     @field_validator("budget_max")
     @classmethod
@@ -60,6 +67,9 @@ class OrderOut(BaseModel):
     needs_review: bool = False
     created_at: datetime | None = None
     updated_at: datetime | None = None
+    # Возраст на площадке и возраст в очереди — разные часы (миграция 0002).
+    published_at: datetime | None = None
+    queued_at: datetime | None = None
     latest_analysis: AnalysisSummaryOut | None = None
 
 

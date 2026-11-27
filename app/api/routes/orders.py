@@ -57,6 +57,8 @@ def _to_out(order: Order, latest=None) -> OrderOut:
         needs_review=bool(order.needs_review),
         created_at=order.created_at,
         updated_at=order.updated_at,
+        published_at=order.published_at,
+        queued_at=order.queued_at,
         latest_analysis=_summary(latest),
     )
 
@@ -92,6 +94,7 @@ def create_order(payload: OrderCreate, service: OrderService = Depends(get_order
             source=payload.source,
             external_id=payload.external_id,
             raw_input=payload.raw_input or payload.model_dump(mode="json"),
+            published_at=payload.published_at,
         )
     )
     return OrderCreateResponse(

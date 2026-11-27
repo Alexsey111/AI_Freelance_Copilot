@@ -14,7 +14,12 @@ from migrations.apply import applied_versions, apply, split_statements
 
 LEGACY_SCHEMA = """
 CREATE TABLE profiles (id INTEGER PRIMARY KEY, name VARCHAR(255) NOT NULL);
-CREATE TABLE orders (id INTEGER PRIMARY KEY, title VARCHAR(500) NOT NULL);
+CREATE TABLE orders (
+    id INTEGER PRIMARY KEY,
+    title VARCHAR(500) NOT NULL,
+    needs_review BOOLEAN NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL
+);
 CREATE TABLE analyses (
     id INTEGER PRIMARY KEY,
     order_id INTEGER NOT NULL,
@@ -29,7 +34,8 @@ CREATE TABLE audit_runs (
     created_at DATETIME NOT NULL
 );
 INSERT INTO profiles (id, name) VALUES (1, 'Старый профиль');
-INSERT INTO orders (id, title) VALUES (1, 'Заказ до миграции');
+INSERT INTO orders (id, title, needs_review, created_at)
+    VALUES (1, 'Заказ до миграции', 0, '2026-11-01 09:00:00');
 INSERT INTO analyses (order_id, recommendation, needs_review, created_at)
     VALUES (1, 'apply', 0, '2026-11-01 10:00:00');
 INSERT INTO audit_runs (action, status, created_at)
@@ -75,10 +81,11 @@ def test_migration_adds_runs_and_run_id_without_losing_data(tmp_path):
 
     applied = apply(db)
 
-    assert applied == ["0001_runs_and_audit"]
+    assert applied == ["0001_runs_and_audit", "0002_aging", "0003_backfill_queue"]
     assert "runs" in _table_names(db)
     assert "run_id" in _columns(db, "analyses")
     assert "run_id" in _columns(db, "audit_runs")
+    assert {"published_at", "queued_at"} <= _columns(db, "orders")
     # Старые строки на месте и с run_id = NULL: история не приписывается прогонам.
     assert _scalar(db, "SELECT count(*) FROM analyses") == (1,)
     assert _scalar(db, "SELECT run_id FROM analyses") == (None,)
@@ -95,7 +102,7 @@ def test_second_run_is_idempotent(tmp_path):
         versions = list(conn.execute("SELECT version FROM schema_version"))
     finally:
         conn.close()
-    assert versions == [("0001_runs_and_audit",)]
+    assert [v for (v,) in versions] == ["0001_runs_and_audit", "0002_aging", "0003_backfill_queue"]
 
 
 def test_migration_survives_schema_created_by_create_all(tmp_path):
@@ -107,7 +114,7 @@ def test_migration_survives_schema_created_by_create_all(tmp_path):
     database.create_all()
     database.dispose()
 
-    assert apply(db) == ["0001_runs_and_audit"]
+    assert apply(db) == ["0001_runs_and_audit", "0002_aging", "0003_backfill_queue"]
     assert "run_id" in _columns(db, "analyses")
 
 
@@ -116,7 +123,7 @@ def test_versions_are_readable_and_statements_split_correctly(tmp_path):
     apply(db)
     conn = sqlite3.connect(db)
     try:
-        assert applied_versions(conn) == {"0001_runs_and_audit"}
+        assert applied_versions(conn) == {"0001_runs_and_audit", "0002_aging", "0003_backfill_queue"}
     finally:
         conn.close()
 

@@ -51,6 +51,10 @@ class Order:
     raw_input: dict | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
+    # Когда заказ опубликован на площадке и когда он попал в ручную проверку.
+    # Это разные часы: первый истекает от конкуренции, второй — наш долг.
+    published_at: datetime | None = None
+    queued_at: datetime | None = None
 
     @property
     def full_text(self) -> str:

@@ -48,6 +48,14 @@ class OrderModel(Base):
     # и экрана "Требуют проверки". Держится в синхроне с status == "needs_review".
     needs_review: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     raw_input: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    # Когда заказ опубликован на площадке (миграция 0002). NULL — неизвестно.
+    published_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
+    # Когда решение ушло человеку. NULL — не в очереди (миграция 0002).
+    queued_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, onupdate=utcnow

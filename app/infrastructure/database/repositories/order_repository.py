@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.domain.models.analysis import Recommendation
 from app.domain.models.order import Order, OrderStatus
-from app.infrastructure.database.models import AnalysisModel, OrderModel
+from app.infrastructure.database.models import AnalysisModel, OrderModel, utcnow
 
 
 def _to_domain(model: OrderModel) -> Order:
@@ -27,6 +27,8 @@ def _to_domain(model: OrderModel) -> Order:
         raw_input=model.raw_input,
         created_at=model.created_at,
         updated_at=model.updated_at,
+        published_at=model.published_at,
+        queued_at=model.queued_at,
     )
 
 
@@ -51,6 +53,10 @@ class OrderRepository:
             status=order.status or OrderStatus.NEW.value,
             needs_review=bool(order.needs_review),
             raw_input=raw_input if raw_input is not None else order.raw_input,
+            published_at=order.published_at,
+            # Заказ, который сразу требует проверки, встаёт в очередь в момент создания:
+            # иначе «висит дольше суток» будет считаться не с того момента.
+            queued_at=utcnow() if order.needs_review else None,
         )
         self.session.add(model)
         self.session.flush()
@@ -65,7 +71,7 @@ class OrderRepository:
             return None
         model.status = status
         if needs_review is not None:
-            model.needs_review = needs_review
+            self._sync_queue(model, needs_review)
         self.session.flush()
         self.session.refresh(model)
         return _to_domain(model)
@@ -74,10 +80,25 @@ class OrderRepository:
         model = self.session.get(OrderModel, order_id)
         if model is None:
             return None
-        model.needs_review = value
+        self._sync_queue(model, value)
         self.session.flush()
         self.session.refresh(model)
         return _to_domain(model)
+
+    @staticmethod
+    def _sync_queue(model: OrderModel, needs_review: bool) -> None:
+        """Очередь ведётся вместе с флагом: это одно состояние, а не два.
+
+        Поставили в проверку — запомнили момент (если ещё не записан). Сняли с проверки —
+        очередь закрыта. Иначе «сколько висит» считается не с того момента, и цифра
+        в отчёте врёт в обе стороны.
+        """
+        model.needs_review = needs_review
+        if needs_review:
+            if model.queued_at is None:
+                model.queued_at = utcnow()
+        else:
+            model.queued_at = None
 
     def find_by_external(self, source: str, external_id: str) -> Order | None:
         stmt = select(OrderModel).where(
