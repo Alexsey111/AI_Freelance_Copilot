@@ -43,6 +43,12 @@ class IngestStats:
 
 # Поля, которые обновляются при повторной встрече с заказом. Статус и решение человека
 # здесь намеренно отсутствуют: парсер не имеет права переписывать приёмку.
+def _as_utc(moment: datetime) -> datetime:
+    """В базе время лежит без зоны (SQLite), у источника — с зоной. Сравнивать можно только
+    приведя оба к UTC: иначе вычитание падает на «naive and aware»."""
+    return moment if moment.tzinfo else moment.replace(tzinfo=UTC)
+
+
 REFRESHABLE = ("title", "description", "budget_min", "budget_max", "url", "views", "responses")
 
 
@@ -56,6 +62,14 @@ def _changed(existing: Order, fresh: Order) -> list[str]:
             changed.append(name)
     if existing.published_at is None and fresh.published_at is not None:
         changed.append("published_at")
+    elif existing.published_at and fresh.published_at:
+        # Площадка иногда называет время в другой зоне или правит его. Расхождение больше
+        # десяти минут — повод переписать, иначе старый сдвиг останется навсегда.
+        drift = abs(
+            (_as_utc(fresh.published_at) - _as_utc(existing.published_at)).total_seconds()
+        )
+        if drift > 600:
+            changed.append("published_at")
     return changed
 
 

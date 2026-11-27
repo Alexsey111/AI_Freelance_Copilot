@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import html as html_module
 import re
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 
 from app.infrastructure.sources.base import ExternalOrder
 
@@ -78,14 +78,22 @@ def parse_relative_time(raw: str, *, now: datetime | None = None) -> datetime | 
     return None
 
 
+MSK = timezone(timedelta(hours=3))
+
+
 def parse_exact_datetime(raw: str) -> datetime | None:
-    """«27.11.2026 06:32» из подсказки к времени → datetime в UTC."""
+    """«27.11.2026 09:45» из подсказки к времени → datetime в UTC.
+
+    Площадка показывает время по Москве. Пока это толковалось как UTC, свежий заказ
+    выглядел опубликованным через 2–3 часа в будущем, а «опубликован 3 ч назад» было
+    на три часа больше правды — и решение о свежести принималось по сдвинутым числам.
+    """
     match = re.search(r"(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})", raw)
     if not match:
         return None
     day, month, year, hour, minute = (int(part) for part in match.groups())
     try:
-        return datetime(year, month, day, hour, minute, tzinfo=UTC)
+        return datetime(year, month, day, hour, minute, tzinfo=MSK).astimezone(UTC)
     except ValueError:
         return None
 
