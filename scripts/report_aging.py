@@ -34,6 +34,8 @@ from app.domain.aging import (  # noqa: E402
     age_hours,
     freshness,
 )
+from app.domain.competition import LABELS as COMPETITION_LABELS  # noqa: E402
+from app.domain.competition import measure, verdict  # noqa: E402
 
 ORDER_OF_BUCKETS = [FRESH, USABLE, STALE, DEAD, UNKNOWN]
 
@@ -54,19 +56,42 @@ def build_report(db: Path, *, now: datetime | None = None) -> str:
     conn = sqlite3.connect(db)
     try:
         orders = conn.execute(
-            "SELECT id, title, status, needs_review, published_at, queued_at, created_at "
-            "FROM orders ORDER BY id"
+            "SELECT id, title, status, needs_review, published_at, queued_at, created_at, "
+            "views, responses FROM orders ORDER BY id"
         ).fetchall()
     finally:
         conn.close()
 
     buckets: dict[str, list[tuple]] = {key: [] for key in ORDER_OF_BUCKETS}
     queue: list[tuple] = []
-    for order_id, title, status, needs_review, published_at, queued_at, created_at in orders:
+    competitive: list[tuple] = []
+    for row in orders:
+        (
+            order_id,
+            title,
+            status,
+            needs_review,
+            published_at,
+            queued_at,
+            created_at,
+            views,
+            responses,
+        ) = row
         category = freshness(_parse(published_at), now=now)
         buckets[category].append((order_id, title, status, published_at, created_at))
         if needs_review and queued_at:
             queue.append((order_id, title, age_hours(_parse(queued_at), now)))
+        if responses is not None:
+            competition = measure(responses, _parse(published_at), now=now)
+            competitive.append(
+                (
+                    order_id,
+                    title,
+                    responses,
+                    competition.per_hour,
+                    COMPETITION_LABELS[verdict(competition)],
+                )
+            )
 
     lines = [
         "# Урок 2. Актуальность заказов и долг в очереди",
@@ -100,6 +125,19 @@ def build_report(db: Path, *, now: datetime | None = None) -> str:
         ]
     else:
         lines.append("Все заказы с датой публикации.")
+
+    lines += ["", "## Конкуренция (по `responses`)", ""]
+    if competitive:
+        competitive.sort(key=lambda row: row[3] or 0, reverse=True)
+        lines += ["| id | заказ | ответов | ответов/ч | вердикт |", "|---|---|---|---|---|"]
+        for order_id, title, responses, per_hour, label in competitive:
+            lines.append(f"| {order_id} | {title[:55]} | {responses} | {per_hour} | {label} |")
+    else:
+        lines.append(
+            "Данных нет: число откликов появляется только из карточки площадки "
+            "(на FL.ru оно есть рядом со временем публикации), в ручном вводе его нет — "
+            "и ноль здесь подставлять нельзя."
+        )
 
     lines += ["", "## Долг в очереди (по `queued_at`)", ""]
     if queue:

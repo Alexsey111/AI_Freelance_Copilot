@@ -63,6 +63,10 @@ class Settings(BaseSettings):
     aging_dead_hours: float = 24.0
     # Сколько часов решение может висеть в проверке, прежде чем это станет долгом.
     review_queue_overdue_hours: float = 12.0
+    # --- Конкуренция по карточке (урок 2, миграция 0004) ---
+    # От 10 откликов шанс мал, от 20 клиент их даже не прочитает.
+    competition_max_responses: int = 10
+    competition_hard_responses: int = 20
 
     # --- Frontend ---
     # 127.0.0.1, а не localhost: см. комментарий в frontend/streamlit/api_client.py

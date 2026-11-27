@@ -55,6 +55,9 @@ class Order:
     # Это разные часы: первый истекает от конкуренции, второй — наш долг.
     published_at: datetime | None = None
     queued_at: datetime | None = None
+    # Сколько смотрели карточку и сколько уже откликнулось. None — данных нет.
+    views: int | None = None
+    responses: int | None = None
 
     @property
     def full_text(self) -> str:

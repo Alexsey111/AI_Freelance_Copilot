@@ -31,6 +31,10 @@ class OrderCreate(BaseModel):
             "к суткам отклик бесполезен независимо от качества"
         ),
     )
+    views: int | None = Field(default=None, ge=0, description="Просмотров карточки")
+    responses: int | None = Field(
+        default=None, ge=0, description="Уже оставлено откликов: главный признак конкуренции"
+    )
 
     @field_validator("budget_max")
     @classmethod
@@ -70,6 +74,8 @@ class OrderOut(BaseModel):
     # Возраст на площадке и возраст в очереди — разные часы (миграция 0002).
     published_at: datetime | None = None
     queued_at: datetime | None = None
+    views: int | None = None
+    responses: int | None = None
     latest_analysis: AnalysisSummaryOut | None = None
 
 

@@ -59,6 +59,8 @@ def _to_out(order: Order, latest=None) -> OrderOut:
         updated_at=order.updated_at,
         published_at=order.published_at,
         queued_at=order.queued_at,
+        views=order.views,
+        responses=order.responses,
         latest_analysis=_summary(latest),
     )
 
@@ -95,6 +97,8 @@ def create_order(payload: OrderCreate, service: OrderService = Depends(get_order
             external_id=payload.external_id,
             raw_input=payload.raw_input or payload.model_dump(mode="json"),
             published_at=payload.published_at,
+            views=payload.views,
+            responses=payload.responses,
         )
     )
     return OrderCreateResponse(

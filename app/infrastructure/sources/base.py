@@ -43,6 +43,9 @@ class ExternalOrder:
     fetched_at: datetime | None = None
     # Когда заказ появился на площадке. Источники, которые этого не отдают, оставляют None.
     published_at: datetime | None = None
+    # Конкуренция: просмотры и число откликов. На FL.ru видны в карточке.
+    views: int | None = None
+    responses: int | None = None
 
 
 @runtime_checkable
@@ -81,6 +84,8 @@ def normalize_external_order(
         needs_review=False,
         raw_input=external.raw or None,
         published_at=external.published_at,
+        views=external.views,
+        responses=external.responses,
     )
     if budget.needs_human:
         logger.warning(

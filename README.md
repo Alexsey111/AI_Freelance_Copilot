@@ -20,9 +20,10 @@
 | Веб-панель (Streamlit): 6 экранов | ✅ |
 | Docker: backend + frontend одним `docker compose up` | ✅ (backend `healthy`, панель на 8501) |
 | Набор тестовых данных `tests_data/` + 15 сквозных сценариев (31 тест) | ✅ |
-| Unit- и integration-тесты, линтер | ✅ 178 тестов, покрытие app/ 96%, ruff чист |
+| Unit- и integration-тесты, линтер | ✅ 189 тестов, покрытие app/ 96%, ruff чист |
 | Прогоны: `runs` + `run_id` у решений и аудита, миграция 0001, отчёт по трём вопросам | ✅ (урок 2, 27.11.2026) |
 | Актуальность заказа и долг в очереди: `published_at`, `queued_at`, пороги 6/12/24 ч, отчёт | ✅ (урок 2, миграции 0002–0003) |
+| Конкуренция по карточке: `views`, `responses`, вердикт «свободно / тесно / не берём» | ✅ (урок 2, миграция 0004) |
 
 Чего в MVP **сознательно нет** (по ТЗ §22): реального парсинга площадок, автоотправки откликов,
 RAG/векторной базы, Redis, Celery, Kubernetes, микросервисов, OpenClaw/Hermes.
@@ -323,7 +324,7 @@ curl -X POST "http://127.0.0.1:8000/api/v1/runs/1/finish?status=done"
 ## Тесты и линтер
 
 ```bash
-./.venv/Scripts/python.exe -m pytest               # 178 тестов, сеть и деньги не используются
+./.venv/Scripts/python.exe -m pytest               # 189 тестов, сеть и деньги не используются
 ./.venv/Scripts/python.exe -m ruff check .        # линтер
 ./.venv/Scripts/python.exe scripts/check_secrets.py   # ключи не должны попасть в Git
 ```

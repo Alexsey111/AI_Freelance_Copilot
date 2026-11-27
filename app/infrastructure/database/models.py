@@ -56,6 +56,9 @@ class OrderModel(Base):
     queued_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, index=True
     )
+    # Конкуренция по карточке заказа (миграция 0004). NULL — данных нет, это не ноль.
+    views: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    responses: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, onupdate=utcnow

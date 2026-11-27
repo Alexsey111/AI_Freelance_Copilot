@@ -34,6 +34,8 @@ class OrderCreateInput:
     external_id: str | None = None
     raw_input: dict | None = None
     published_at: datetime | None = None
+    views: int | None = None
+    responses: int | None = None
 
 
 @dataclass(slots=True)
@@ -73,6 +75,8 @@ class OrderService:
             client_name=payload.client_name,
             raw=payload.raw_input or {},
             published_at=payload.published_at,
+            views=payload.views,
+            responses=payload.responses,
         )
         order = normalize_external_order(
             external, min_description_chars=self.settings.min_description_chars
