@@ -30,6 +30,10 @@ def _to_domain(model: RunModel) -> Run:
         note=model.note,
         started_at=model.started_at,
         finished_at=model.finished_at,
+        tokens_in=model.tokens_in,
+        tokens_out=model.tokens_out,
+        latency_ms=model.latency_ms,
+        cost_rub=model.cost_rub,
     )
 
 
@@ -73,6 +77,33 @@ class RunRepository:
     def count_audit(self, run_id: int) -> int:
         stmt = select(func.count()).select_from(AuditRunModel).where(AuditRunModel.run_id == run_id)
         return int(self.session.execute(stmt).scalar_one())
+
+    def add_usage(
+        self,
+        run_id: int,
+        *,
+        tokens_in: int | None,
+        tokens_out: int | None,
+        latency_ms: int | None,
+        cost_rub: float | None,
+    ) -> None:
+        """Накапливает расход: прогон — это сумма вызовов, а не последний вызов.
+
+        NULL остаётся NULL, если провайдер ничего не вернул: прогон без usage не должен
+        выглядеть как прогон за ноль токенов.
+        """
+        model = self.session.get(RunModel, run_id)
+        if model is None:
+            return
+        if tokens_in is not None:
+            model.tokens_in = (model.tokens_in or 0) + tokens_in
+        if tokens_out is not None:
+            model.tokens_out = (model.tokens_out or 0) + tokens_out
+        if latency_ms is not None:
+            model.latency_ms = (model.latency_ms or 0) + latency_ms
+        if cost_rub is not None:
+            model.cost_rub = round((model.cost_rub or 0.0) + cost_rub, 6)
+        self.session.flush()
 
     def close(self, run_id: int, status: str) -> Run | None:
         """Закрывает прогон и фиксирует итог по фактическим записям, а не по словам."""

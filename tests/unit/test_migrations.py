@@ -81,7 +81,7 @@ def test_migration_adds_runs_and_run_id_without_losing_data(tmp_path):
 
     applied = apply(db)
 
-    assert applied == ["0001_runs_and_audit", "0002_aging", "0003_backfill_queue", "0004_competition", "0005_rate", "0006_portfolio"]
+    assert applied == ["0001_runs_and_audit", "0002_aging", "0003_backfill_queue", "0004_competition", "0005_rate", "0006_portfolio", "0007_usage"]
     assert "runs" in _table_names(db)
     assert "run_id" in _columns(db, "analyses")
     assert "run_id" in _columns(db, "audit_runs")
@@ -102,7 +102,7 @@ def test_second_run_is_idempotent(tmp_path):
         versions = list(conn.execute("SELECT version FROM schema_version"))
     finally:
         conn.close()
-    assert [v for (v,) in versions] == ["0001_runs_and_audit", "0002_aging", "0003_backfill_queue", "0004_competition", "0005_rate", "0006_portfolio"]
+    assert [v for (v,) in versions] == ["0001_runs_and_audit", "0002_aging", "0003_backfill_queue", "0004_competition", "0005_rate", "0006_portfolio", "0007_usage"]
 
 
 def test_migration_survives_schema_created_by_create_all(tmp_path):
@@ -114,7 +114,7 @@ def test_migration_survives_schema_created_by_create_all(tmp_path):
     database.create_all()
     database.dispose()
 
-    assert apply(db) == ["0001_runs_and_audit", "0002_aging", "0003_backfill_queue", "0004_competition", "0005_rate", "0006_portfolio"]
+    assert apply(db) == ["0001_runs_and_audit", "0002_aging", "0003_backfill_queue", "0004_competition", "0005_rate", "0006_portfolio", "0007_usage"]
     assert "run_id" in _columns(db, "analyses")
 
 
@@ -123,7 +123,7 @@ def test_versions_are_readable_and_statements_split_correctly(tmp_path):
     apply(db)
     conn = sqlite3.connect(db)
     try:
-        assert applied_versions(conn) == {"0001_runs_and_audit", "0002_aging", "0003_backfill_queue", "0004_competition", "0005_rate", "0006_portfolio"}
+        assert applied_versions(conn) == {"0001_runs_and_audit", "0002_aging", "0003_backfill_queue", "0004_competition", "0005_rate", "0006_portfolio", "0007_usage"}
     finally:
         conn.close()
 

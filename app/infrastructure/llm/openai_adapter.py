@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 
 from app.domain.models.analysis import AnalysisResult
 from app.domain.models.order import Order
@@ -52,6 +53,8 @@ class OpenAIProvider:
         self.rules = rules or {}
         self.prompt_version = PROMPT_VERSION
         self.last_raw_output: str | None = None
+        # Что вернул провайдер в последнем вызове. Пусто, если usage не отдан (бывает).
+        self.last_usage: dict[str, int | None] = {}
         if client is not None:
             self._client = client
         else:
@@ -63,6 +66,7 @@ class OpenAIProvider:
 
     async def analyze_order(self, order: Order, profile: Profile) -> AnalysisResult:
         prompt = build_order_prompt(order, profile, rules=self.rules)
+        started = time.perf_counter()
         try:
             response = await asyncio.wait_for(
                 self._client.chat.completions.create(
@@ -80,7 +84,17 @@ class OpenAIProvider:
         except TimeoutError as exc:
             raise LLMTimeoutError(f"LLM timeout после {self.timeout_s:g} c") from exc
         except Exception as exc:  # сеть/401/429/5xx и т.п.
-            raise LLMUnavailableError(f"Провайдер LLM недоступен: {type(exc).__name__}: {exc}") from exc
+            raise LLMUnavailableError(
+                f"Провайдер LLM недоступен: {type(exc).__name__}: {exc}"
+            ) from exc
+
+        latency_ms = int((time.perf_counter() - started) * 1000)
+        usage = getattr(response, "usage", None)
+        self.last_usage = {
+            "tokens_in": getattr(usage, "prompt_tokens", None) if usage else None,
+            "tokens_out": getattr(usage, "completion_tokens", None) if usage else None,
+            "latency_ms": latency_ms,
+        }
 
         raw = (response.choices[0].message.content or "") if response.choices else ""
         self.last_raw_output = truncate_raw(raw)

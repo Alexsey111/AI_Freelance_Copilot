@@ -24,6 +24,11 @@ class Run:
     id: int | None = None
     started_at: datetime | None = None
     finished_at: datetime | None = None
+    # Расход прогона: то, что вернул провайдер, и рубли по прайсу пользователя.
+    tokens_in: int | None = None
+    tokens_out: int | None = None
+    latency_ms: int | None = None
+    cost_rub: float | None = None
 
     @property
     def review_share(self) -> float | None:

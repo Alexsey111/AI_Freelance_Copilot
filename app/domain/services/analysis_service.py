@@ -62,6 +62,7 @@ class AnalysisService:
         audit_service: AuditService,
         llm_provider,
         settings: Settings | None = None,
+        run_repository=None,
     ) -> None:
         self.orders = order_repository
         self.profiles = profile_repository
@@ -69,6 +70,8 @@ class AnalysisService:
         self.audit = audit_service
         self.llm = llm_provider
         self.settings = settings or get_settings()
+        # Необязателен: анализ работает и без прогона, просто расход тогда некуда писать.
+        self.runs = run_repository
 
     # --- Endpoint №3: ИИ-обработка (ТЗ §11) ---
     async def analyze_order(self, order_id: int, profile_id: int | None = None) -> AnalyzeOutcome:
@@ -86,9 +89,7 @@ class AnalysisService:
             raise LookupError(f"Заказ #{order_id} не найден")
 
         profile = (
-            self.profiles.get(profile_id)
-            if profile_id is not None
-            else self.profiles.get_active()
+            self.profiles.get(profile_id) if profile_id is not None else self.profiles.get_active()
         )
         if profile is None:
             self.audit.record(
@@ -131,9 +132,7 @@ class AnalysisService:
         order_after = self._update_order_status(order, decision.result)
 
         status = (
-            AuditStatus.REVIEW.value
-            if decision.result.needs_review
-            else AuditStatus.SUCCESS.value
+            AuditStatus.REVIEW.value if decision.result.needs_review else AuditStatus.SUCCESS.value
         )
         self.audit.record(
             ACTION_ANALYZE,
@@ -379,7 +378,8 @@ class AnalysisService:
         if isinstance(exc, (LLMUnavailableError, LLMTimeoutError)):
             # Инфраструктурная ошибка: заказ уходит в ERROR, но человек об этом узнаёт.
             reason = (
-                f"Ошибка LLM: {exc}" if not isinstance(exc, LLMTimeoutError)
+                f"Ошибка LLM: {exc}"
+                if not isinstance(exc, LLMTimeoutError)
                 else f"LLM timeout: {exc}"
             )
             status = AuditStatus.ERROR.value
@@ -459,9 +459,7 @@ class AnalysisService:
                 draft_reply=result.draft_reply,
                 needs_review=result.needs_review,
                 review_reason=result.review_reason,
-                review_status=(
-                    ReviewStatus.PENDING.value if result.needs_review else None
-                ),
+                review_status=(ReviewStatus.PENDING.value if result.needs_review else None),
                 raw_output=raw_output,
                 model=getattr(self.llm, "model", None),
                 prompt_version=prompt_version,
@@ -472,7 +470,10 @@ class AnalysisService:
     def _update_order_status(self, order: Order, result: AnalysisResult) -> Order:
         if result.needs_review:
             status = OrderStatus.NEEDS_REVIEW.value
-        elif result.recommendation is Recommendation.APPLY or result.recommendation is Recommendation.SKIP:
+        elif (
+            result.recommendation is Recommendation.APPLY
+            or result.recommendation is Recommendation.SKIP
+        ):
             status = OrderStatus.ANALYZED.value
         else:
             status = OrderStatus.NEEDS_REVIEW.value

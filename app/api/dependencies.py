@@ -22,6 +22,7 @@ from app.infrastructure.database.repositories import (
     AuditRepository,
     OrderRepository,
     ProfileRepository,
+    RunRepository,
 )
 
 
@@ -83,6 +84,7 @@ def get_analysis_service(
         audit_service=AuditService(AuditRepository(session)),
         llm_provider=request.app.state.llm_provider,
         settings=settings,
+        run_repository=RunRepository(session),
     )
 
 

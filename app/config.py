@@ -45,6 +45,10 @@ class Settings(BaseSettings):
     llm_timeout_s: float = 60.0
     llm_temperature: float = 0.0
     llm_max_output_tokens: int = 1500
+    # Прайс модели в рублях за миллион токенов (вход/выход). Не задан — стоимость пустая:
+    # у облачной ollama usage есть, а цены нет; у локальной модели нет ни того, ни другого.
+    llm_price_in_rub_per_1m: float | None = None
+    llm_price_out_rub_per_1m: float | None = None
 
     # --- Бизнес-правила ручной проверки (ТЗ §13, §14, §29) ---
     default_profile_id: int = 1

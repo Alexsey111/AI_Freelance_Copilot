@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.api.dependencies import get_session
 from app.api.schemas.runs import RunOut, RunStartRequest, RunStartResponse
 from app.domain.models.run import Run
+from app.domain.usage import format_cost
 from app.infrastructure.database.repositories.run_repository import RunRepository
 
 router = APIRouter(prefix="/runs", tags=["runs"])
@@ -30,6 +31,11 @@ def _to_out(run: Run, audit_records: int = 0) -> RunOut:
         orders_review=run.orders_review,
         review_share=run.review_share,
         audit_records=audit_records,
+        tokens_in=run.tokens_in,
+        tokens_out=run.tokens_out,
+        latency_ms=run.latency_ms,
+        cost_rub=run.cost_rub,
+        cost_rub_text=format_cost(run.cost_rub),
         note=run.note,
         started_at=run.started_at,
         finished_at=run.finished_at,

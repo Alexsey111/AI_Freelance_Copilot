@@ -23,12 +23,12 @@ from app.infrastructure.llm.base import (
 # Ключевые слова, включающие сценарии в mock-провайдере (только для тестов и демонстрации).
 # Каждый триггер соответствует одному из случаев ТЗ §14, чтобы правило проверялось сквозь API,
 # а не только юнит-тестом на внутреннем методе.
-TRIGGER_BAD_JSON = "MOCK_BAD_JSON"            # §14.2 невалидный ответ модели
-TRIGGER_TIMEOUT = "MOCK_TIMEOUT"              # §14.5 ошибка LLM
-TRIGGER_LOW_MATCH = "MOCK_LOW_MATCH"          # низкая уверенность при хорошем расчёте по профилю
+TRIGGER_BAD_JSON = "MOCK_BAD_JSON"  # §14.2 невалидный ответ модели
+TRIGGER_TIMEOUT = "MOCK_TIMEOUT"  # §14.5 ошибка LLM
+TRIGGER_LOW_MATCH = "MOCK_LOW_MATCH"  # низкая уверенность при хорошем расчёте по профилю
 TRIGGER_LOW_CONFIDENCE = "MOCK_LOW_CONFIDENCE"  # модель сама просит проверку
-TRIGGER_INFLATED = "MOCK_INFLATED"            # завышенная оценка: расхождение с расчётом по профилю
-TRIGGER_NO_DRAFT = "MOCK_NO_DRAFT"            # apply без черновика отклика
+TRIGGER_INFLATED = "MOCK_INFLATED"  # завышенная оценка: расхождение с расчётом по профилю
+TRIGGER_NO_DRAFT = "MOCK_NO_DRAFT"  # apply без черновика отклика
 
 
 class MockProvider:
@@ -47,11 +47,19 @@ class MockProvider:
         self.delay_s = delay_s
         self.min_description_chars = min_description_chars
         self.calls: list[dict] = []
+        # Mock тоже отдаёт usage: прогоны и тесты должны видеть расход, пусть и условный.
+        self.last_usage: dict[str, int | None] = {}
 
     async def analyze_order(self, order: Order, profile: Profile) -> AnalysisResult:
         if self.delay_s:
             await asyncio.sleep(self.delay_s)
         self.calls.append({"order_id": order.id, "profile_id": profile.id})
+        prompt_chars = len(order.full_text) + 200
+        self.last_usage = {
+            "tokens_in": prompt_chars // 3,
+            "tokens_out": 120,
+            "latency_ms": int(self.delay_s * 1000),
+        }
         text = order.full_text.upper()
 
         if TRIGGER_TIMEOUT in text:
@@ -128,9 +136,7 @@ class MockProvider:
                 review_reason=None,
             )
 
-        recommendation = (
-            Recommendation.APPLY if score >= 0.5 else Recommendation.SKIP
-        )
+        recommendation = Recommendation.APPLY if score >= 0.5 else Recommendation.SKIP
         draft = None
         if recommendation is Recommendation.APPLY:
             draft = _draft_reply(order, profile, outcome.matched_skills)
