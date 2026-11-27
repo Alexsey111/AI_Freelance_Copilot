@@ -282,3 +282,19 @@ class ResponseModel(Base):
     cost_rub: Mapped[float | None] = mapped_column(Float, nullable=True)
     status: Mapped[str] = mapped_column(String(16), default="sent", nullable=False)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class PlatformPreferenceModel(Base):
+    """platform_preferences — с какими площадками пользователь работает (миграция 0011).
+
+    Тариф площадки общий и лежит в данных, а выбор «беру отсюда заказы / не беру» — личное
+    решение: он хранится в базе, чтобы окно не спрашивало одно и то же при каждом запуске.
+    """
+
+    __tablename__ = "platform_preferences"
+
+    platform_key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, index=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )

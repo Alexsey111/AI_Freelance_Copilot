@@ -227,6 +227,13 @@ async function selftest() {
   const runs = await evaluate('window.selftest.runs()');
   expect('прогоны отвечают', Array.isArray(runs));
 
+  const orders = await evaluate('window.selftest.orders()');
+  expect(
+    'заказы по выбранным площадкам видны',
+    orders && typeof orders.total === 'number',
+    orders ? `заказов ${orders.total}` : ''
+  );
+
   const platforms = await evaluate('window.selftest.platforms()');
   const flru = (platforms || []).find((item) => item.key === 'flru');
   expect(
@@ -245,6 +252,7 @@ async function selftest() {
   // Переключение экранов: каждый таб должен отрисоваться без ошибок.
   for (const tab of [
     'profile',
+    'orders',
     'norms',
     'workload',
     'settings',

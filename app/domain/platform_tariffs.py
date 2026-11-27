@@ -92,6 +92,14 @@ class Platform:
         return None
 
     @property
+    def best_kind(self) -> str | None:
+        """Откуда взялась лучшая цена: пакет откликов или подписка. Это разные риски."""
+        best = self.best_per_response
+        if best is None:
+            return None
+        return "subscription" if best in self.subscription else "package"
+
+    @property
     def best_currency(self) -> str:
         """Валюта лучшей цены: у зарубежных площадок это доллары, путать с рублями нельзя."""
         best = self.best_per_response

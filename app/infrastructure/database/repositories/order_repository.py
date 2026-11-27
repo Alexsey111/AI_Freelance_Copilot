@@ -129,6 +129,7 @@ class OrderRepository:
         page_size: int = 20,
         status: str | None = None,
         source: str | None = None,
+        sources: list[str] | None = None,
         needs_review: bool | None = None,
         recommendation: str | None = None,
         search: str | None = None,
@@ -139,6 +140,10 @@ class OrderRepository:
             stmt = stmt.where(OrderModel.status == status)
         if source:
             stmt = stmt.where(OrderModel.source == source)
+        if sources:
+            # Площадки приходят ключами справочника, а в заказах лежат написания парсеров:
+            # фильтр идёт по списку написаний, иначе «fl.ru» и «flru» — разные площадки.
+            stmt = stmt.where(OrderModel.source.in_(sources))
         if needs_review is not None:
             stmt = stmt.where(OrderModel.needs_review.is_(bool(needs_review)))
         if search:

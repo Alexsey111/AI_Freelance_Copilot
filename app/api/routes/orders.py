@@ -19,6 +19,7 @@ from app.api.schemas.orders import (
     OrderOut,
 )
 from app.domain.models.order import Order, OrderSource, OrderStatus
+from app.domain.platform_choice import UNKNOWN_SOURCE, aliases_for, known_keys
 from app.domain.services.order_service import OrderCreateInput, OrderService
 
 router = APIRouter(prefix="/orders", tags=["orders"])
@@ -128,6 +129,9 @@ def list_orders(
     source: str | None = Query(None),
     recommendation: str | None = Query(None),
     search: str | None = Query(None, max_length=200),
+    platforms: str | None = Query(
+        None, description="Ключи площадок через запятую: flru,kwork,manual"
+    ),
     service: OrderService = Depends(get_order_service),
 ):
     if status_filter is not None and status_filter not in VALID_STATUSES:
@@ -136,11 +140,21 @@ def list_orders(
         raise HTTPException(
             status_code=422, detail=f"Недопустимая рекомендация: {recommendation!r}"
         )
+    sources = None
+    if platforms:
+        keys = [item.strip() for item in platforms.split(",") if item.strip()]
+        unknown = [key for key in keys if key not in known_keys() and key != UNKNOWN_SOURCE]
+        if unknown:
+            raise HTTPException(
+                status_code=422, detail=f"Неизвестные площадки: {', '.join(unknown)}"
+            )
+        sources = aliases_for(keys)
     result = service.list_orders(
         page=page,
         page_size=page_size,
         status=status_filter,
         source=source,
+        sources=sources,
         needs_review=needs_review,
         recommendation=recommendation,
         search=search,

@@ -6,6 +6,9 @@ const state = {
   catalog: [],
   platforms: [],
   platformsChecked: '',
+  platformsWarning: '',
+  orders: [],
+  ordersTotal: 0,
   responses: [],
   funnel: null,
   profile: null,
@@ -366,6 +369,104 @@ function renderQueue() {
   });
 }
 
+// --- Заказы: какие площадки показываем ---
+
+function enabledKeys() {
+  return state.platforms.filter((item) => item.enabled).map((item) => item.key);
+}
+
+function platformPriceLabel(item) {
+  if (item.status === 'blocked') return 'недоступна из России';
+  if (item.best_price != null) return money(item.best_price, item.best_price_currency);
+  if (item.subscription && item.subscription.length) {
+    return `подписка ${money(item.subscription[0].price, item.subscription[0].currency)}`;
+  }
+  if (item.free_per_month) return `${item.free_per_month} в месяц`;
+  return 'цена в кабинете';
+}
+
+function renderPlatformPicker() {
+  const box = $('platform-picker');
+  box.innerHTML = '';
+  state.platforms.forEach((item) => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'skill-chip' + (item.enabled ? ' picked' : '');
+    chip.textContent = `${item.title} · ${platformPriceLabel(item)}`;
+    chip.title = item.paid_warning || '';
+    chip.addEventListener('click', async () => {
+      chip.disabled = true;
+      try {
+        await api(`/platforms/${item.key}/enabled`, {
+          method: 'PUT',
+          body: JSON.stringify({ enabled: !item.enabled }),
+        });
+        await refreshPlatforms();
+        await refreshOrders();
+      } catch (error) {
+        note('orders-warning', error.message, true);
+      } finally {
+        chip.disabled = false;
+      }
+    });
+    box.appendChild(chip);
+  });
+}
+
+function renderOrders() {
+  $('orders-warning').textContent = state.platformsWarning || '';
+  $('orders-total').textContent = state.ordersTotal
+    ? `Всего заказов по выбранным площадкам: ${state.ordersTotal}`
+    : 'По выбранным площадкам заказов нет';
+  const body = $('orders-table').querySelector('tbody');
+  body.innerHTML = '';
+  if (!state.orders.length) {
+    body.innerHTML = '<tr><td colspan="4" class="empty">Пусто — включите площадку или добавьте заказ</td></tr>';
+    return;
+  }
+  state.orders.forEach((order) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td></td><td></td><td></td><td></td>';
+    tr.children[0].textContent = `#${order.id} ${order.title}`;
+    tr.children[1].textContent = order.source === 'manual' ? 'ручной ввод' : order.source;
+    const low = order.budget_min != null ? order.budget_min : null;
+    const high = order.budget_max != null ? order.budget_max : null;
+    tr.children[2].textContent =
+      low != null && high != null && low !== high
+        ? `${low.toLocaleString('ru-RU')}–${high.toLocaleString('ru-RU')} ₽`
+        : low != null || high != null
+          ? `${(low ?? high).toLocaleString('ru-RU')} ₽`
+          : 'не указан';
+    tr.children[3].textContent = order.status;
+    body.appendChild(tr);
+  });
+}
+
+async function refreshPlatforms() {
+  const payload = await api('/platforms');
+  state.platforms = payload.platforms;
+  state.platformsWarning = payload.paid_warning || '';
+  state.platformsChecked = payload.checked_at;
+  renderPlatformPicker();
+  renderPlatforms();
+}
+
+async function refreshOrders() {
+  // «manual» — заказы без площадки (ручной ввод, неизвестный парсер). Их не теряем:
+  // выключенная площадка означает «не работаю с ней», а не «удали мои заказы».
+  const keys = [...enabledKeys(), 'manual'];
+  if (!keys.length) {
+    state.orders = [];
+    state.ordersTotal = 0;
+    renderOrders();
+    return;
+  }
+  const payload = await api(`/orders?page_size=50&platforms=${keys.join(',')}`);
+  state.orders = payload.items;
+  state.ordersTotal = payload.total;
+  renderOrders();
+}
+
 // --- Площадки ---
 
 function money(value, currency) {
@@ -559,6 +660,7 @@ async function loadAll() {
     state.catalog = catalog.professions;
     state.platforms = platforms.platforms;
     state.platformsChecked = platforms.checked_at;
+    state.platformsWarning = platforms.paid_warning || '';
     fillPlatformSelect();
     Object.assign(state, { profile, norms, settings, workload, queue, runs, responses, funnel });
     renderProfile();
@@ -567,9 +669,11 @@ async function loadAll() {
     renderWorkload();
     renderSettings();
     renderQueue();
+    renderPlatformPicker();
     renderPlatforms();
     renderResponses();
     renderRuns();
+    await refreshOrders();
     setStatus('готово');
   } catch (error) {
     setStatus(`Ядро не отвечает: ${error.message}`, true);
@@ -589,6 +693,7 @@ window.selftest = {
   queue: () => state.queue || { total: null },
   funnel: () => state.funnel,
   platforms: () => state.platforms,
+  orders: () => ({ items: state.orders, total: state.ordersTotal }),
   runs: () => state.runs,
   show,
 };

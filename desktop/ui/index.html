@@ -13,6 +13,7 @@
       </div>
       <nav class="tabs">
         <button data-tab="profile" class="active">Профиль</button>
+        <button data-tab="orders">Заказы</button>
         <button data-tab="norms">Время на задачи</button>
         <button data-tab="workload">Загрузка недели</button>
         <button data-tab="settings">Правила</button>
@@ -72,6 +73,32 @@
           <button class="primary" id="save-profile">Сохранить профиль</button>
           <span class="save-note" id="profile-note"></span>
         </div>
+      </section>
+
+      <!-- Заказы -->
+      <section id="tab-orders" class="tab-panel">
+        <h1>Заказы: с каких площадок берём</h1>
+        <p class="hint">
+          Отметьте площадки, с которыми работаете. Заказы с остальных в витрину не попадают:
+          смотреть ленту, откуда всё равно не откликаешься, — потерянное время.
+        </p>
+        <div class="field">
+          <span>Площадки</span>
+          <div class="catalog-items" id="platform-picker"></div>
+        </div>
+        <p class="warning" id="orders-warning"></p>
+        <table class="table" id="orders-table">
+          <thead>
+            <tr>
+              <th>Заказ</th>
+              <th>Площадка</th>
+              <th>Бюджет</th>
+              <th>Статус</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <p class="hint" id="orders-total"></p>
       </section>
 
       <!-- Нормы времени -->
