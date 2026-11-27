@@ -35,6 +35,7 @@
 | Выбор площадок для работы — `PUT /api/v1/platforms/{key}/enabled`, фильтр `/orders?platforms=` | ✅ (миграция 0011) |
 | Парсеры ленты FL.ru и Freelance.ru — `POST /api/v1/sources/refresh`, `scripts/parse_sources.py` | ✅ |
 | Kwork (лента только в браузере) — окно снимает карточки, `POST /api/v1/sources/ingest` разбирает | ✅ |
+| Уведомления на почту/мессенджер по расписанию (пока ПК включён) | 📋 план: `docs/уведомления-план.md` |
 | Подборка под профиль с причинами — `GET /api/v1/orders/shortlist` | ✅ |
 | Десктопное окно на Electron: профиль, нормы, загрузка, правила, очередь, отклики, прогоны | ✅ (`desktop/`) |
 
