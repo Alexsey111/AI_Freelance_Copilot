@@ -47,6 +47,8 @@ class ExternalOrder:
     views: int | None = None
     responses: int | None = None
     estimated_hours: float | None = None
+    accepted_at: datetime | None = None
+    deadline_at: datetime | None = None
 
 
 @runtime_checkable
@@ -88,6 +90,8 @@ def normalize_external_order(
         views=external.views,
         responses=external.responses,
         estimated_hours=external.estimated_hours,
+        accepted_at=external.accepted_at,
+        deadline_at=external.deadline_at,
     )
     if budget.needs_human:
         logger.warning(

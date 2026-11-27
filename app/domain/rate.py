@@ -51,9 +51,7 @@ def pessimistic_budget(budget_min: float | None, budget_max: float | None) -> fl
     return None
 
 
-def rate_for(
-    budget_min: float | None, budget_max: float | None, hours: float | None
-) -> Rate:
+def rate_for(budget_min: float | None, budget_max: float | None, hours: float | None) -> Rate:
     return Rate(budget=pessimistic_budget(budget_min, budget_max), hours=hours)
 
 
@@ -68,9 +66,7 @@ def verdict(rate: Rate, *, min_rate_rub_per_hour: float = 1_500, great_factor: f
     return OK
 
 
-def orders_per_week(
-    hours: float | None, *, available_hours_per_week: float = 45.0
-) -> int | None:
+def orders_per_week(hours: float | None, *, available_hours_per_week: float = 45.0) -> int | None:
     """Сколько таких заказов помещается в неделю. Отвечает на «4 по 15 000 — это сколько»."""
     if hours is None or hours <= 0:
         return None

@@ -61,6 +61,11 @@ class OrderModel(Base):
     responses: Mapped[int | None] = mapped_column(Integer, nullable=True)
     # Наша оценка трудозатрат в часах (миграция 0005). NULL — не оценено.
     estimated_hours: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # Окно набора заказов (миграция 0006): когда взяли в работу и когда сдать.
+    accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    deadline_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, onupdate=utcnow

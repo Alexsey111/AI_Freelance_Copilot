@@ -60,6 +60,9 @@ class Order:
     responses: int | None = None
     # Оценка трудозатрат в часах: без неё нельзя посчитать ставку ₽/час.
     estimated_hours: float | None = None
+    # Окно набора: когда взяли и когда сдать. Без срока окно считается скользящим.
+    accepted_at: datetime | None = None
+    deadline_at: datetime | None = None
 
     @property
     def full_text(self) -> str:

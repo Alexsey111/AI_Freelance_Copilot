@@ -62,6 +62,8 @@ def _to_out(order: Order, latest=None) -> OrderOut:
         views=order.views,
         responses=order.responses,
         estimated_hours=order.estimated_hours,
+        accepted_at=order.accepted_at,
+        deadline_at=order.deadline_at,
         latest_analysis=_summary(latest),
     )
 
@@ -101,6 +103,7 @@ def create_order(payload: OrderCreate, service: OrderService = Depends(get_order
             views=payload.views,
             responses=payload.responses,
             estimated_hours=payload.estimated_hours,
+            deadline_at=payload.deadline_at,
         )
     )
     return OrderCreateResponse(

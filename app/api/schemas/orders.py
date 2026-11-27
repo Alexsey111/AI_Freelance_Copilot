@@ -43,6 +43,10 @@ class OrderCreate(BaseModel):
             "бюджет без часов ничего не говорит о выгоде"
         ),
     )
+    deadline_at: datetime | None = Field(
+        default=None,
+        description="Срок сдачи: по нему заказ попадает в окно набора (неделя)",
+    )
 
     @field_validator("budget_max")
     @classmethod
@@ -85,6 +89,8 @@ class OrderOut(BaseModel):
     views: int | None = None
     responses: int | None = None
     estimated_hours: float | None = None
+    accepted_at: datetime | None = None
+    deadline_at: datetime | None = None
     latest_analysis: AnalysisSummaryOut | None = None
 
 

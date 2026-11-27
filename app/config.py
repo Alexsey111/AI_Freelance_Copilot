@@ -72,6 +72,11 @@ class Settings(BaseSettings):
     # Порог бюджета остаётся, но как «мягкий»: мелкий заказ проходит, если ставка высокая.
     min_rate_rub_per_hour: float = 1_500
     available_hours_per_week: float = 45.0
+    # Режим порога: "hard" — только заказы не ниже порога профиля, "portfolio" — набор
+    # на неделю: мелкие заказы проходят, если вместе дают цель и влезают в часы.
+    budget_mode: str = "portfolio"
+    # Цель недели в рублях: сколько должна дать неделя, чтобы её считать набранной.
+    target_week_rub: float = 75_000.0
 
     # --- Frontend ---
     # 127.0.0.1, а не localhost: см. комментарий в frontend/streamlit/api_client.py
