@@ -9,6 +9,8 @@ const state = {
   platformsWarning: '',
   orders: [],
   ordersTotal: 0,
+  shortlist: [],
+  shortlistNote: '',
   responses: [],
   funnel: null,
   profile: null,
@@ -451,6 +453,55 @@ async function refreshPlatforms() {
   renderPlatforms();
 }
 
+function renderShortlist() {
+  $('shortlist-note').textContent = state.shortlistNote;
+  const box = $('shortlist-list');
+  box.innerHTML = '';
+  if (!state.shortlist.length) {
+    box.innerHTML = '<p class="empty">Подходящих заказов нет — нажмите «Обновить ленту»</p>';
+    return;
+  }
+  state.shortlist.forEach((fit) => {
+    const card = document.createElement('div');
+    card.className = 'catalog-group';
+    card.innerHTML = '<span class="catalog-title plain"></span><p class="platform-line"></p>';
+    card.querySelector('.catalog-title').textContent =
+      `${fit.verdict_label} · #${fit.order_id} ${fit.title}`;
+    card.querySelector('.platform-line').textContent = fit.reasons.join('; ');
+    box.appendChild(card);
+  });
+}
+
+async function refreshShortlist() {
+  const payload = await api('/orders/shortlist?limit=8');
+  state.shortlist = payload.items;
+  state.shortlistNote = `${payload.note} Посмотрено заказов: ${payload.considered}, навыки: ${
+    payload.skills.join(', ') || 'не заданы'
+  }, порог бюджета: ${payload.min_budget_rub.toLocaleString('ru-RU')} ₽.`;
+  renderShortlist();
+}
+
+$('refresh-feed').addEventListener('click', async () => {
+  note('refresh-note', 'Собираю ленту…');
+  try {
+    const result = await api('/sources/refresh', {
+      method: 'POST',
+      body: JSON.stringify({ source: 'all', pages: 1, limit: 30 }),
+    });
+    const parts = result.items.map((item) =>
+      item.available
+        ? `${item.source}: новых ${item.created}, обновлено ${item.updated}`
+        : `${item.source}: недоступно`
+    );
+    note('refresh-note', parts.join(' · '));
+    await refreshPlatforms();
+    await refreshOrders();
+    await refreshShortlist();
+  } catch (error) {
+    note('refresh-note', error.message, true);
+  }
+});
+
 async function refreshOrders() {
   // «manual» — заказы без площадки (ручной ввод, неизвестный парсер). Их не теряем:
   // выключенная площадка означает «не работаю с ней», а не «удали мои заказы».
@@ -674,6 +725,7 @@ async function loadAll() {
     renderResponses();
     renderRuns();
     await refreshOrders();
+    await refreshShortlist();
     setStatus('готово');
   } catch (error) {
     setStatus(`Ядро не отвечает: ${error.message}`, true);
@@ -694,6 +746,7 @@ window.selftest = {
   funnel: () => state.funnel,
   platforms: () => state.platforms,
   orders: () => ({ items: state.orders, total: state.ordersTotal }),
+  shortlist: () => state.shortlist,
   runs: () => state.runs,
   show,
 };

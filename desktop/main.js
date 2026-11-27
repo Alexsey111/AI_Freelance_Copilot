@@ -234,6 +234,13 @@ async function selftest() {
     orders ? `заказов ${orders.total}` : ''
   );
 
+  const shortlist = await evaluate('window.selftest.shortlist()');
+  expect(
+    'подборка под профиль строится',
+    Array.isArray(shortlist),
+    Array.isArray(shortlist) ? `в подборке ${shortlist.length}` : ''
+  );
+
   const platforms = await evaluate('window.selftest.platforms()');
   const flru = (platforms || []).find((item) => item.key === 'flru');
   expect(

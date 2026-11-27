@@ -60,7 +60,6 @@ def test_funnel_counts_cost_per_hire(client, app):
     assert funnel["cost_per_hire"] == 400.0
     assert funnel["hire_rate"] == 0.5
     assert funnel["hired_money"] == 50000.0
-    assert funnel["modes"]["draft_only"].startswith("только черновик")
 
 
 def test_hired_moves_order_into_work(client, app):

@@ -29,6 +29,4 @@ class ManualOrderSource:
         self._pending.append(external)
 
     def to_domain(self, external: ExternalOrder) -> Order:
-        return normalize_external_order(
-            external, min_description_chars=self.min_description_chars
-        )
+        return normalize_external_order(external, min_description_chars=self.min_description_chars)

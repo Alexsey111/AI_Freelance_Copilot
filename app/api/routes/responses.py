@@ -16,7 +16,7 @@ from sqlalchemy import select
 
 from app.api.dependencies import get_session
 from app.domain.models.order import OrderStatus
-from app.domain.responses import LABELS, MODE_LABELS, STATUSES, funnel
+from app.domain.responses import LABELS, STATUSES, funnel
 from app.infrastructure.database.models import OrderModel, ResponseModel
 
 router = APIRouter(prefix="/responses", tags=["responses"])
@@ -54,7 +54,6 @@ class FunnelOut(BaseModel):
     hire_rate: float | None = None
     cost_per_hire: float | None = None
     cost_per_sent: float | None = None
-    modes: dict[str, str]
 
 
 def _to_out(row: ResponseModel, title: str) -> ResponseOut:
@@ -160,5 +159,4 @@ def responses_funnel(session=Depends(get_session)) -> FunnelOut:
         hire_rate=stats.hire_rate,
         cost_per_hire=stats.cost_per_hire,
         cost_per_sent=stats.cost_per_sent,
-        modes=MODE_LABELS,
     )

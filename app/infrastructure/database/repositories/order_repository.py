@@ -73,6 +73,26 @@ class OrderRepository:
         self.session.refresh(model)
         return _to_domain(model)
 
+    def save(self, order: Order) -> Order:
+        """Обновляет изменяемые поля заказа, не трогая статус и решение человека.
+
+        Нужен парсерам: число откликов и просмотров на площадке меняется каждый час, а
+        приёмка заказа — наше решение, и источник не должен её переписывать.
+        """
+        model = self.session.get(OrderModel, order.id) if order.id is not None else None
+        if model is None:
+            return self.add(order)
+        for name in ("title", "description", "budget_min", "budget_max", "url", "client_name"):
+            setattr(model, name, getattr(order, name))
+        model.views = order.views
+        model.responses = order.responses
+        if order.published_at is not None:
+            model.published_at = order.published_at
+        model.updated_at = utcnow()
+        self.session.flush()
+        self.session.refresh(model)
+        return _to_domain(model)
+
     def update_status(
         self, order_id: int, status: str, *, needs_review: bool | None = None
     ) -> Order | None:
