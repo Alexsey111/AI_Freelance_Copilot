@@ -4,7 +4,7 @@
 // перезапустить отдельно и показать на защите как самостоятельную часть. Окно — оболочка,
 // которая не содержит бизнес-логики.
 
-const { app, BrowserWindow, shell, Menu, dialog } = require('electron');
+const { app, BrowserWindow, shell, Menu, dialog, ipcMain } = require('electron');
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
@@ -12,6 +12,10 @@ const net = require('net');
 const http = require('http');
 
 const SELFTEST = process.argv.includes('--selftest');
+const KWORK_DUMP = (() => {
+  const i = process.argv.indexOf('--kwork-cards');
+  return i > -1 && process.argv[i + 1] ? path.resolve(process.argv[i + 1]) : null;
+})();
 const SMOKE = process.argv.includes('--smoke');
 const SMOKE_OUT = (() => {
   const i = process.argv.indexOf('--smoke-out');
@@ -134,6 +138,56 @@ function routeExternalLinks(browserWindow) {
     }
   });
 }
+
+// --- Kwork: лента проектов отдаётся только браузеру ---
+//
+// В ответе сервера проектов нет: их дорисовывает JS. Поэтому окно открывает страницу в
+// скрытом окне, снимает разметку карточек и отдаёт её ядру — разбор остаётся на Python,
+// где его можно проверить на сохранённых карточках.
+
+const KWORK_URL = 'https://kwork.ru/projects';
+const KWORK_LIMIT = 40;
+const KWORK_TIMEOUT_MS = 30000;
+
+function renderKwork() {
+  return new Promise((resolve) => {
+    const worker = new BrowserWindow({
+      width: 1280,
+      height: 900,
+      show: false,
+      webPreferences: { backgroundThrottling: false, nodeIntegration: false, contextIsolation: true },
+    });
+    let done = false;
+    const finish = (payload) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      clearInterval(poll);
+      if (!worker.isDestroyed()) worker.destroy();
+      resolve(payload);
+    };
+    const timer = setTimeout(() => finish({ cards: [], reason: 'страница не отрисовалась за 30 с' }), KWORK_TIMEOUT_MS);
+    const poll = setInterval(async () => {
+      if (done || worker.isDestroyed()) return;
+      try {
+        const cards = await worker.webContents.executeJavaScript(
+          `[...document.querySelectorAll('.want-card')].slice(0, ${KWORK_LIMIT}).map((el) => el.outerHTML)`,
+          true
+        );
+        if (Array.isArray(cards) && cards.length) finish({ cards });
+      } catch (_) {
+        /* страница ещё грузится */
+      }
+    }, 1200);
+
+    worker.webContents.on('did-fail-load', () =>
+      finish({ cards: [], reason: 'площадка не ответила' })
+    );
+    worker.loadURL(KWORK_URL).catch(() => finish({ cards: [], reason: 'площадка не открылась' }));
+  });
+}
+
+ipcMain.handle('sources:kwork', async () => renderKwork());
 
 async function createWindow() {
   const state = loadWindowState();
@@ -327,6 +381,14 @@ if (!SELFTEST && !SMOKE && !app.requestSingleInstanceLock()) {
   trace('before whenReady');
   app.whenReady().then(async () => {
     trace('whenReady');
+    if (KWORK_DUMP) {
+      // Режим проверки: снять карточки Kwork в файл и выйти, не поднимая ядро.
+      const result = await renderKwork();
+      fs.writeFileSync(KWORK_DUMP, JSON.stringify(result), 'utf8');
+      console.log(`KWORK_CARDS ${result.cards.length} ${result.reason || ''}`.trim());
+      app.exit(result.cards.length ? 0 : 3);
+      return;
+    }
     Menu.setApplicationMenu(null);
     try {
       await startBackend();

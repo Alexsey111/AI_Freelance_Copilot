@@ -490,9 +490,22 @@ $('refresh-feed').addEventListener('click', async () => {
     });
     const parts = result.items.map((item) =>
       item.available
-        ? `${item.source}: новых ${item.created}, обновлено ${item.updated}`
+        ? `${item.source}: новых ${item.created}, обновлено ${item.updated}, без изменений ${item.unchanged}`
         : `${item.source}: недоступно`
     );
+    // Kwork отдаёт ленту только браузеру: окно открывает страницу и присылает карточки.
+    if (enabledKeys().includes('kwork') && window.desktop && window.desktop.kworkCards) {
+      const rendered = await window.desktop.kworkCards();
+      if (rendered.cards.length) {
+        const kwork = await api('/sources/ingest', {
+          method: 'POST',
+          body: JSON.stringify({ source: 'kwork', cards: rendered.cards }),
+        });
+        parts.push(`kwork: новых ${kwork.created}, обновлено ${kwork.updated}, без изменений ${kwork.unchanged}`);
+      } else {
+        parts.push(`kwork: ${rendered.reason || 'карточек не нашлось'}`);
+      }
+    }
     note('refresh-note', parts.join(' · '));
     await refreshPlatforms();
     await refreshOrders();

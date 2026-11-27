@@ -23,6 +23,7 @@ class IngestStats:
     created: int = 0
     updated: int = 0
     skipped: int = 0
+    unchanged: int = 0
     touched_views: int = 0
     new_ids: list[int] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
@@ -33,6 +34,7 @@ class IngestStats:
             "created": self.created,
             "updated": self.updated,
             "skipped": self.skipped,
+            "unchanged": self.unchanged,
             "touched_views": self.touched_views,
             "new_ids": self.new_ids,
             "errors": self.errors,
@@ -87,6 +89,9 @@ def ingest_orders(
 
         changed = _changed(existing, fresh)
         if not changed:
+            # Заказ уже был и не изменился: это не «пропущено» и не «обновлено» —
+            # третий счётчик, чтобы повторный прогон не выглядел как потеря данных.
+            stats.unchanged += 1
             continue
         for name in changed:
             setattr(existing, name, getattr(fresh, name))

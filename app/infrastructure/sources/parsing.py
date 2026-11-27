@@ -234,3 +234,86 @@ def parse_freelance_ru(
             )
         )
     return orders
+
+
+def _block(card: str, marker: str, stop: str) -> str:
+    """Кусок карточки от маркера до следующего маркера: так вложенные div не рвут выборку."""
+    begin = card.find(marker)
+    if begin < 0:
+        return ""
+    end = card.find(stop, begin)
+    return card[begin : end if end > begin else len(card)]
+
+
+def parse_kwork(cards: list[str], now: datetime | None = None) -> list[ExternalOrder]:
+    """Карточки Kwork (HTML после отрисовки в браузере) → ExternalOrder.
+
+    Лента проектов Kwork приходит только в браузере: в исходном HTML проектов нет, их
+    дорисовывает JS. Поэтому страницу открывает окно программы, а разбор остаётся здесь,
+    где его можно проверить на сохранённых карточках.
+
+    Kwork не публикует время размещения — только «Осталось: 2 д. 23 ч.». Поэтому
+    `published_at` остаётся пустым (возраст неизвестен), а срок считается от текущего
+    момента: это единственное, что площадка сообщает честно.
+    """
+    moment = now or datetime.now(UTC)
+    orders: list[ExternalOrder] = []
+
+    for card in cards:
+        found_id = re.search(r'href="/projects/(\d+)"', card)
+        if not found_id:
+            continue
+
+        title_match = re.search(
+            r'class="wants-card__header-title[^"]*"\s*>\s*<a[^>]*>(.*?)</a>', card, re.S
+        )
+        title = _text(title_match.group(1)) if title_match else ""
+
+        # Описание есть дважды: обрезанное («Показать полностью») и полное в скрытом блоке.
+        # Полный вариант идёт после слова «Показать полностью» — его и берём.
+        description_block = _block(card, "wants-card__description-text", "wants-card__right")
+        description = _text(description_block)
+        tail = description.split("Показать полностью", 1)
+        if len(tail) == 2:
+            description = tail[1]
+        description = description.replace("Скрыть", "").strip()
+
+        price_block = _block(card, "wants-card__price", "want-payer-statistic")
+        price_text = _text(price_block)
+        desired = re.search(r"Желаемый бюджет[:\s]*до\s*([\d\s]+)", price_text)
+        allowed = re.search(r"Допустимый[:\s]*до\s*([\d\s]+)", price_text)
+        single = re.search(r"Цена\s*([\d\s]+)", price_text)
+        # «Допустимый» — верхняя граница, которую заказчик готов платить. Если её нет,
+        # берём желаемый бюджет, а если и его нет — единственную цену.
+        budget_max = None
+        for candidate in (allowed, desired, single):
+            if candidate:
+                budget_max = _number(candidate.group(1))
+                break
+
+        whole_text = _text(card)
+        offers = re.search(r"Предложений:\s*(\d+)", whole_text)
+        client = re.search(r'https://kwork\.ru/user/([^"\s]+)', card)
+        remaining = re.search(r"Осталось:\s*(\d+)\s*д\.\s*(\d+)\s*ч\.", whole_text)
+        deadline_at = None
+        if remaining:
+            deadline_at = moment + timedelta(
+                days=int(remaining.group(1)), hours=int(remaining.group(2))
+            )
+
+        orders.append(
+            ExternalOrder(
+                source="kwork",
+                external_id=found_id.group(1),
+                title=title,
+                description=description,
+                budget_max=budget_max,
+                url=f"https://kwork.ru/projects/{found_id.group(1)}",
+                client_name=client.group(1) if client else None,
+                fetched_at=moment,
+                deadline_at=deadline_at,
+                responses=int(offers.group(1)) if offers else None,
+                raw={"price_text": price_text},
+            )
+        )
+    return orders
