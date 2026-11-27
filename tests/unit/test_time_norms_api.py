@@ -35,6 +35,36 @@ def test_estimate_says_so_when_type_is_unknown(client):
     assert "не определён" in answer["reason"]
 
 
+def test_skills_catalog_covers_many_professions(client):
+    payload = client.get("/api/v1/time-norms/skills-catalog").json()
+    keys = {group["key"] for group in payload["professions"]}
+    assert {"dev", "text", "design", "marketing", "video", "translate"} <= keys
+    assert payload["total"] >= 100
+    assert any("Копирайтинг" in group["skills"] for group in payload["professions"])
+
+
+def test_skills_catalog_search_filters(client):
+    payload = client.get("/api/v1/time-norms/skills-catalog?q=figma").json()
+    skills = [s for group in payload["professions"] for s in group["skills"]]
+    assert skills == ["Figma"]
+
+
+def test_missing_norms_are_added_to_existing_base(client):
+    """Новая версия приносит нормы для копирайтера — они должны появиться и у старой установки."""
+    client.delete("/api/v1/time-norms/article")
+    kinds = {item["task_kind"] for item in client.get("/api/v1/time-norms").json()}
+    assert "article" in kinds
+
+
+def test_estimate_works_for_text_work_not_only_it(client):
+    answer = client.post(
+        "/api/v1/time-norms/estimate",
+        json={"title": "Нужна статья 8 000 знаков про налоги", "description": "для блога"},
+    ).json()
+    assert answer["task_kind"] == "article"
+    assert answer["hours"] == 4.0
+
+
 def test_norm_hours_are_editable(client):
     updated = client.put("/api/v1/time-norms/bot", json={"hours": 11.5})
     assert updated.status_code == 200

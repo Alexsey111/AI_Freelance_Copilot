@@ -262,3 +262,23 @@ class TimeNormModel(Base):
     keywords: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class ResponseModel(Base):
+    """responses --- журнал отправленных откликов и их цена (миграция 0010).
+
+    Нужен, чтобы ответить на вопрос «сколько стоит один заказ на самом деле»:
+    отклики на биржах платные, и цена попытки входит в экономику не меньше, чем часы работы.
+    """
+
+    __tablename__ = "responses"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id"), nullable=False, index=True)
+    platform: Mapped[str] = mapped_column(String(32), default="manual", nullable=False)
+    sent_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, index=True
+    )
+    cost_rub: Mapped[float | None] = mapped_column(Float, nullable=True)
+    status: Mapped[str] = mapped_column(String(16), default="sent", nullable=False)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)

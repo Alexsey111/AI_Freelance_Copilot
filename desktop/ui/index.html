@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <title>AI Freelance Copilot</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="dot"></span>
+        <strong>AI Freelance Copilot</strong>
+      </div>
+      <nav class="tabs">
+        <button data-tab="profile" class="active">Профиль</button>
+        <button data-tab="norms">Время на задачи</button>
+        <button data-tab="workload">Загрузка недели</button>
+        <button data-tab="settings">Правила</button>
+        <button data-tab="queue">Очередь проверки</button>
+        <button data-tab="responses">Отклики</button>
+        <button data-tab="runs">Прогоны</button>
+      </nav>
+      <div class="status" id="status">загрузка…</div>
+    </header>
+
+    <main>
+      <!-- Профиль -->
+      <section id="tab-profile" class="tab-panel active">
+        <h1>Профиль: кто я и за что берусь</h1>
+        <p class="hint">
+          По этим полям система отбирает заказы: навыки сравниваются с текстом заказа,
+          минимальный бюджет и ставка задают порог, «не беру» отсекает направления.
+        </p>
+        <div class="grid two">
+          <label class="field">
+            <span>Имя профиля</span>
+            <input id="profile-name" type="text" />
+          </label>
+          <label class="field">
+            <span>Минимальный бюджет, ₽</span>
+            <input id="profile-budget" type="number" min="0" step="1000" />
+          </label>
+          <label class="field">
+            <span>Ставка, ₽/час</span>
+            <input id="profile-rate" type="number" min="0" step="100" />
+          </label>
+          <label class="field">
+            <span>Часов в неделю</span>
+            <input id="profile-hours" type="number" min="1" max="168" step="1" />
+          </label>
+        </div>
+        <label class="field">
+          <span>О себе</span>
+          <textarea id="profile-summary" rows="3"></textarea>
+        </label>
+        <label class="field">
+          <span>Мои навыки (выбрано)</span>
+          <div class="chips" id="skills-box"></div>
+          <input id="skill-input" type="text" placeholder="Свой навык — впишите и нажмите Enter" />
+        </label>
+        <div class="field">
+          <span>Справочник навыков по профессиям — нажмите, чтобы добавить</span>
+          <input id="catalog-search" type="text" placeholder="Поиск: SEO, Figma, перевод, монтаж…" />
+          <div class="catalog" id="catalog"></div>
+        </div>
+        <label class="field">
+          <span>Опыт</span>
+          <textarea id="profile-experience" rows="3"></textarea>
+        </label>
+        <div class="actions">
+          <button class="primary" id="save-profile">Сохранить профиль</button>
+          <span class="save-note" id="profile-note"></span>
+        </div>
+      </section>
+
+      <!-- Нормы времени -->
+      <section id="tab-norms" class="tab-panel">
+        <h1>Сколько времени уходит на задачу</h1>
+        <p class="hint">
+          Это ваши нормы, не средние по рынку. Из них система берёт часы для заказа и
+          считает ставку ₽/час — поэтому ошибка в норме меняет решения по всем заказам этого типа.
+        </p>
+        <table class="table" id="norms-table">
+          <thead>
+            <tr>
+              <th>Тип задачи</th>
+              <th>Часов</th>
+              <th>Ключевые слова</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+
+        <h2>Проверить оценку заказа</h2>
+        <div class="grid two">
+          <label class="field">
+            <span>Заголовок заказа</span>
+            <input id="estimate-title" type="text" placeholder="Telegram-бот для приёма заявок" />
+          </label>
+          <label class="field">
+            <span>Описание</span>
+            <input id="estimate-desc" type="text" placeholder="меню, оплата, админка" />
+          </label>
+        </div>
+        <div class="actions">
+          <button class="primary" id="estimate-run">Оценить</button>
+          <span class="save-note" id="estimate-note"></span>
+        </div>
+      </section>
+
+      <!-- Загрузка -->
+      <section id="tab-workload" class="tab-panel">
+        <h1>Распределение времени недели</h1>
+        <p class="hint">
+          Считается по заказам, взятым в работу. Часы берутся из оценки заказа, а если её
+          нет — из нормы по типу задачи.
+        </p>
+        <div class="cards" id="workload-cards"></div>
+        <div class="bar"><div class="bar-fill" id="load-fill"></div></div>
+        <table class="table" id="workload-table">
+          <thead>
+            <tr>
+              <th>Тип задачи</th>
+              <th>Заказов</th>
+              <th>Часов</th>
+              <th>Деньги, ₽</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <!-- Правила -->
+      <section id="tab-settings" class="tab-panel">
+        <h1>Правила работы</h1>
+        <p class="hint">
+          Меняются здесь и сразу действуют — перезапуск не нужен. Подпись под полем
+          показывает, откуда взято текущее значение: настройка, окружение или по умолчанию.
+        </p>
+        <div id="settings-list" class="settings"></div>
+      </section>
+
+      <!-- Очередь -->
+      <section id="tab-queue" class="tab-panel">
+        <h1>Требуют проверки</h1>
+        <p class="hint">Заказы, где система не уверена. Решение человека — окончательное.</p>
+        <div id="queue-list" class="queue"></div>
+      </section>
+
+      <!-- Отклики -->
+      <section id="tab-responses" class="tab-panel">
+        <h1>Отклики: сколько стоит один найм</h1>
+        <p class="hint">
+          Отклик на бирже часто платный, поэтому «бюджет ÷ часы» — ещё не вся экономика.
+          Здесь видно, сколько попыток ушло, сколько они стоили и во что обошёлся найм.
+          Режим отправки задаётся в «Правилах»: черновик, полуавтомат или автоотправка.
+        </p>
+        <div class="cards" id="funnel-cards"></div>
+        <div class="grid two">
+          <label class="field">
+            <span>Записать отклик: номер заказа</span>
+            <input id="response-order" type="number" min="1" placeholder="36" />
+          </label>
+          <label class="field">
+            <span>Цена отклика, ₽</span>
+            <input id="response-cost" type="number" min="0" placeholder="150" />
+          </label>
+        </div>
+        <div class="actions">
+          <button class="primary" id="response-add">Записать отправленный</button>
+          <span class="save-note" id="response-note"></span>
+        </div>
+        <table class="table" id="responses-table">
+          <thead>
+            <tr>
+              <th>Заказ</th>
+              <th>Площадка</th>
+              <th>Отправлен</th>
+              <th>Цена</th>
+              <th>Статус</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <!-- Прогоны -->
+      <section id="tab-runs" class="tab-panel">
+        <h1>Прогоны: что и почём</h1>
+        <p class="hint">Сколько заказов разобрано, сколько ушло человеку, сколько токенов и рублей потрачено.</p>
+        <table class="table" id="runs-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Тип</th>
+              <th>Модель</th>
+              <th>Заказов</th>
+              <th>К человеку</th>
+              <th>Токены</th>
+              <th>Стоимость</th>
+              <th>Начат</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

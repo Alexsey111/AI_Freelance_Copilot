@@ -34,18 +34,28 @@ class TimeNormRepository:
         return [_to_domain(model) for model in self.session.execute(stmt).scalars().all()]
 
     def ensure_seeded(self) -> list[Norm]:
-        """Пустая таблица заполняется заводскими нормами: окно должно открыться не пустым."""
-        if self.session.execute(select(TimeNormModel).limit(1)).first() is None:
-            for item in DEFAULT_NORMS:
-                self.session.add(
-                    TimeNormModel(
-                        task_kind=item["task_kind"],
-                        title=item["title"],
-                        hours=float(item["hours"]),
-                        keywords=json.dumps(item["keywords"], ensure_ascii=False),
-                        note=item.get("note"),
-                    )
+        """Досеивает недостающие заводские нормы, не трогая уже изменённые.
+
+        Важно не «заполнить пустую таблицу», а «добавить то, чего нет»: иначе новая
+        версия программы приносит нормы для копирайтера, а у пользователя с прежней
+        установкой их не появится никогда — таблица уже не пустая.
+        """
+        existing = {norm.task_kind for norm in self.list()}
+        added = False
+        for item in DEFAULT_NORMS:
+            if item["task_kind"] in existing:
+                continue
+            self.session.add(
+                TimeNormModel(
+                    task_kind=item["task_kind"],
+                    title=item["title"],
+                    hours=float(item["hours"]),
+                    keywords=json.dumps(item["keywords"], ensure_ascii=False),
+                    note=item.get("note"),
                 )
+            )
+            added = True
+        if added:
             self.session.flush()
         return self.list()
 

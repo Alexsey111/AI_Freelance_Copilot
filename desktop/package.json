@@ -1,0 +1,15 @@
+{
+  "name": "ai-freelance-copilot",
+  "version": "0.1.0",
+  "description": "Окно программы AI Freelance Copilot: профиль, нормы времени, загрузка недели, правила, очередь проверки",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "selftest": "electron . --selftest",
+    "smoke": "electron . --smoke"
+  },
+  "devDependencies": {
+    "electron": "^33.4.11"
+  }
+}

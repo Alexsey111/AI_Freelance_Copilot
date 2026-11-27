@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 
 from app.api.dependencies import get_app_settings, get_session
+from app.domain.skills_catalog import all_skills, catalog
 from app.domain.time_norms import guess_norm, workload
 from app.infrastructure.database.models import OrderModel
 from app.infrastructure.database.repositories.settings_repository import SettingsRepository
@@ -83,6 +84,15 @@ def _effective_capacity(session, settings) -> float:
         return float(raw) if raw else settings.available_hours_per_week
     except ValueError:
         return settings.available_hours_per_week
+
+
+@router.get("/skills-catalog", summary="Справочник навыков по профессиям")
+def skills_catalog(q: str | None = None) -> dict:
+    """Подсказки для профиля: у копирайтера, дизайнера и переводчика свой набор.
+
+    Справочник не ограничивает: свои навыки добавляются свободным текстом.
+    """
+    return {"professions": catalog(q), "total": len(all_skills())}
 
 
 @router.get("", response_model=list[TimeNormOut], summary="Нормы времени по типам задач")
