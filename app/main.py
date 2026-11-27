@@ -17,6 +17,7 @@ from app.api.router import api_v1
 from app.api.schemas.common import ErrorResponse
 from app.config import Settings, get_settings
 from app.domain.models.analysis import AnalysisResult
+from app.domain.run_context import RUN_HEADER, run_scope
 from app.infrastructure.database.database import Database
 from app.infrastructure.database.repositories import ProfileRepository
 from app.infrastructure.llm.factory import build_llm_provider
@@ -63,6 +64,30 @@ def create_app(settings: Settings | None = None, llm_provider=None) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    @app.middleware("http")
+    async def run_scope_middleware(request: Request, call_next):
+        """Прогон задаётся заголовком `X-Run-Id` и действует весь запрос.
+
+        Так скрипт прогона не проходит через бизнес-логику: он создаёт прогон
+        (`POST /api/v1/runs`) и дальше просто передаёт его номер в заголовке.
+        Запрос без заголовка пишет решения с `run_id = NULL` --- это допустимо
+        (ручной разбор одиночного заказа), и это видно в отчёте.
+        """
+        raw = request.headers.get(RUN_HEADER)
+        run_id: int | None = None
+        if raw:
+            try:
+                run_id = int(raw)
+            except ValueError:
+                return JSONResponse(
+                    status_code=400,
+                    content=ErrorResponse(
+                        detail=f"Заголовок {RUN_HEADER} должен быть числом", code="bad_run_id"
+                    ).model_dump(),
+                )
+        with run_scope(run_id):
+            return await call_next(request)
 
     # Схемы создаём сразу: SQLite-файл нужен и без запуска сервера (CLI-проверки, скрипты).
     database.create_all()

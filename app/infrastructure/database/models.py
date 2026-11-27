@@ -118,6 +118,10 @@ class AnalysisModel(Base):
     model: Mapped[str | None] = mapped_column(String(128), nullable=True)
     prompt_version: Mapped[str | None] = mapped_column(String(32), nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Прогон, в котором получено решение (миграция 0001). NULL — запись до появления прогонов.
+    run_id: Mapped[int | None] = mapped_column(
+        ForeignKey("runs.id"), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     order: Mapped[OrderModel] = relationship(back_populates="analyses")
@@ -145,6 +149,9 @@ class AuditRunModel(Base):
     status: Mapped[str] = mapped_column(String(16), nullable=False)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    run_id: Mapped[int | None] = mapped_column(
+        ForeignKey("runs.id"), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     __table_args__ = (
@@ -155,3 +162,34 @@ class AuditRunModel(Base):
 
     def __repr__(self) -> str:  # pragma: no cover - debug helper
         return f"<AuditRunModel id={self.id} action={self.action!r} status={self.status!r}>"
+
+
+class RunModel(Base):
+    """runs --- прогон разбора (миграция 0001).
+
+    Прогон --- это один осмысленный запуск: пачка заказов, ночная синхронизация, ручной
+    прогон 20 заказов. Хранит условия, в которых получены решения, --- модель, версию
+    промпта, профиль, --- и итог. Без него вопрос «что изменилось между прогонами»
+    и «сколько стоил прогон» не отвечается: решения есть, а условий нет.
+    """
+
+    __tablename__ = "runs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    kind: Mapped[str] = mapped_column(String(32), default="analyze_batch", nullable=False)
+    model: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    prompt_version: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    profile_id: Mapped[int | None] = mapped_column(ForeignKey("profiles.id"), nullable=True)
+    orders_total: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    orders_review: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), default="running", nullable=False)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    finished_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    __table_args__ = (Index("ix_runs_started_at", "started_at"),)
+
+    def __repr__(self) -> str:  # pragma: no cover - debug helper
+        return f"<RunModel id={self.id} kind={self.kind!r} status={self.status!r}>"

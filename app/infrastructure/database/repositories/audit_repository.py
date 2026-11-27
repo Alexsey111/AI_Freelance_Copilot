@@ -6,6 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.domain.models.audit import AuditRun, AuditStatus
+from app.domain.run_context import current_run_id
 from app.infrastructure.database.models import AuditRunModel
 
 
@@ -36,6 +37,7 @@ class AuditRepository:
             status=run.status,
             error=run.error,
             duration_ms=run.duration_ms,
+            run_id=current_run_id(),
         )
         self.session.add(model)
         self.session.flush()

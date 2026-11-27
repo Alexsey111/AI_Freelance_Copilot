@@ -20,7 +20,8 @@
 | Веб-панель (Streamlit): 6 экранов | ✅ |
 | Docker: backend + frontend одним `docker compose up` | ✅ (backend `healthy`, панель на 8501) |
 | Набор тестовых данных `tests_data/` + 15 сквозных сценариев (31 тест) | ✅ |
-| Unit- и integration-тесты, линтер | ✅ 128 тестов, покрытие app/ 96%, ruff чист |
+| Unit- и integration-тесты, линтер | ✅ 160 тестов, покрытие app/ 96%, ruff чист |
+| Прогоны: `runs` + `run_id` у решений и аудита, миграция 0001, отчёт по трём вопросам | ✅ (урок 2, 27.11.2026) |
 
 Чего в MVP **сознательно нет** (по ТЗ §22): реального парсинга площадок, автоотправки откликов,
 RAG/векторной базы, Redis, Celery, Kubernetes, микросервисов, OpenClaw/Hermes.
@@ -294,10 +295,34 @@ DATABASE_URL="sqlite:///./artifacts/demo.db" \
 `MOCK_NO_DRAFT`, `MOCK_INFLATED`) — так аварийные ветки проверяются сквозь API, а не только
 юнит-тестом на внутреннем методе.
 
+## Прогоны (runs)
+
+Решение без условий запуска — это число без контекста: непонятно, каким промптом, какой
+моделью и каким профилем оно получено. Поэтому у каждого решения есть прогон.
+
+```bash
+# 1. начать прогон
+curl -X POST http://127.0.0.1:8000/api/v1/runs -H "Content-Type: application/json" \
+     -d '{"kind":"analyze_batch","model":"gpt-5-nano","prompt_version":"v1"}'
+# {"run_id": 1, "header": "X-Run-Id", ...}
+
+# 2. разбирать заказы, передавая номер прогона в заголовке
+curl -X POST http://127.0.0.1:8000/api/v1/orders/1/analyze -H "X-Run-Id: 1" \
+     -H "Content-Type: application/json" -d '{}'
+
+# 3. закрыть прогон: итог считается по фактическим строкам базы
+curl -X POST "http://127.0.0.1:8000/api/v1/runs/1/finish?status=done"
+```
+
+Запрос без заголовка `X-Run-Id` — это ручной разбор одиночного заказа: решение пишется
+с `run_id = NULL` и в отчёте попадает в строку «без прогона». Схема меняется через
+`migrations/` (см. `migrations/README.md`), деньги по прогонам считает
+`scripts/measure_cost.py`, три вопроса урока 2 отвечает `scripts/report_runs.py`.
+
 ## Тесты и линтер
 
 ```bash
-./.venv/Scripts/python.exe -m pytest               # 104 теста, сеть и деньги не используются
+./.venv/Scripts/python.exe -m pytest               # 160 тестов, сеть и деньги не используются
 ./.venv/Scripts/python.exe -m ruff check .        # линтер
 ./.venv/Scripts/python.exe scripts/check_secrets.py   # ключи не должны попасть в Git
 ```

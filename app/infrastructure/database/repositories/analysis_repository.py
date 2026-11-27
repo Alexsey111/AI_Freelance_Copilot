@@ -8,6 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.domain.models.analysis import Analysis, Recommendation, ReviewStatus
+from app.domain.run_context import current_run_id
 from app.infrastructure.database.models import AnalysisModel
 
 
@@ -58,6 +59,9 @@ class AnalysisRepository:
             model=analysis.model,
             prompt_version=analysis.prompt_version,
             error=analysis.error,
+            # Прогон берётся из контекста: бизнес-логика о нём не знает, а запись
+            # без прогона (скрипт, тест) остаётся с NULL.
+            run_id=current_run_id(),
         )
         self.session.add(model)
         self.session.flush()
