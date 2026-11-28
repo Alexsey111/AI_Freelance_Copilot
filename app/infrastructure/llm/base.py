@@ -16,6 +16,7 @@ from typing import Protocol, runtime_checkable
 from pydantic import ValidationError
 
 from app.config import PROMPTS_DIR
+from app.domain.intake import intake_facts
 from app.domain.models.analysis import AnalysisResult
 from app.domain.models.order import Order
 from app.domain.models.profile import Profile
@@ -23,6 +24,34 @@ from app.domain.privacy import mask_order_payload
 
 PROMPT_VERSION = "v1.0"
 PROMPT_FILE = "order_analysis.txt"
+
+# Домен задаётся профилем (`preferences.domain`), а не правкой кода: один движок
+# обслуживает и разбор фриланс-заказов, и приём входящих заявок компании.
+#   файл промпта, версия промпта, системная строка
+PROMPT_DOMAINS: dict[str, tuple[str, str, str]] = {
+    "freelance": (
+        PROMPT_FILE,
+        PROMPT_VERSION,
+        "Ты --- модуль анализа фриланс-заказов в системе AI Freelance Copilot. "
+        "Ты отвечаешь единственным JSON-объектом по заданной схеме, без пояснений и markdown.",
+    ),
+    "intake": (
+        "request_triage.txt",
+        "v1.0-intake",
+        "Ты --- модуль разбора входящих заявок в системе приёма заявок. "
+        "Ты отвечаешь единственным JSON-объектом по заданной схеме, без пояснений и markdown.",
+    ),
+}
+
+
+def prompt_for_domain(domain: str | None) -> tuple[str, str, str]:
+    """Вернуть (файл, версия, системная строка) для домена профиля.
+
+    Неизвестный или пустой домен не ломает прогон: используется фриланс-промпт,
+    потому что это поведение по умолчанию для профиля без настроек.
+    """
+    key = (domain or "freelance").strip().lower()
+    return PROMPT_DOMAINS.get(key, PROMPT_DOMAINS["freelance"])
 
 # Сколько первых/последних символов "сырого" ответа модели хранить в audit/analyses.
 RAW_OUTPUT_LIMIT = 20000
@@ -65,10 +94,12 @@ class OrderAnalysisPrompt:
     version: str = PROMPT_VERSION
 
 
-def load_prompt_template(prompts_dir: Path | None = None) -> str:
-    """Прочитать шаблон промпта из prompts/order_analysis.txt."""
+def load_prompt_template(
+    prompts_dir: Path | None = None, filename: str = PROMPT_FILE
+) -> str:
+    """Прочитать шаблон промпта из prompts/<filename> (по умолчанию — фриланс)."""
     directory = prompts_dir or PROMPTS_DIR
-    path = directory / PROMPT_FILE
+    path = directory / filename
     if not path.exists():  # pragma: no cover - защита от битой поставки
         raise LLMError(f"Не найден файл промпта: {path}")
     return path.read_text(encoding="utf-8")
@@ -81,8 +112,19 @@ def build_order_prompt(
     rules: dict | None = None,
     prompts_dir: Path | None = None,
 ) -> OrderAnalysisPrompt:
-    """Собрать промпт: шаблон + факты о заказе и профиле (без додумывания данных)."""
-    template = load_prompt_template(prompts_dir)
+    """Собрать промпт: шаблон + факты о заказе и профиле (без додумывания данных).
+
+    Файл шаблона и системная строка выбираются доменом профиля: у компании
+    (`preferences.domain = "intake"`) вместо «отклика» заявка идёт «в работу»,
+    но схема ответа та же, поэтому правила и БД не меняются.
+    """
+    domain = (getattr(profile, "preferences", None) or {}).get("domain")
+    filename, version, system = prompt_for_domain(domain)
+    template = load_prompt_template(prompts_dir, filename)
+    prompt_rules: dict = dict(rules or {})
+    if str(domain or "").strip().lower() == "intake":
+        # Числа, которые модель читает нестабильно, считает система и отдаёт фактами.
+        prompt_rules["intake_facts"] = intake_facts(order, profile)
     facts = {
         # Заказ уходит внешнему провайдеру, поэтому в промпт попадает только обезличенная
         # версия (app/domain/privacy.py). Маска ставится здесь, а не в адаптере, чтобы ни один
@@ -99,7 +141,12 @@ def build_order_prompt(
                 "url": order.url,
                 "source": order.source,
                 "missing_data": order.missing_data(
-                    (rules or {}).get("min_description_chars", 40)
+                    (rules or {}).get("min_description_chars", 40),
+                    require_budget=bool(
+                        (getattr(profile, "preferences", None) or {}).get(
+                            "require_budget", True
+                        )
+                    ),
                 ),
             }
         ),
@@ -115,13 +162,12 @@ def build_order_prompt(
     user = (
         template.replace("{{ORDER_JSON}}", json.dumps(facts["order"], ensure_ascii=False, indent=2))
         .replace("{{PROFILE_JSON}}", json.dumps(facts["profile"], ensure_ascii=False, indent=2))
-        .replace("{{RULES_JSON}}", json.dumps(rules or {}, ensure_ascii=False, indent=2))
+        .replace(
+            "{{RULES_JSON}}",
+            json.dumps(prompt_rules, ensure_ascii=False, indent=2),
+        )
     )
-    system = (
-        "Ты --- модуль анализа фриланс-заказов в системе AI Freelance Copilot. "
-        "Ты отвечаешь единственным JSON-объектом по заданной схеме, без пояснений и markdown."
-    )
-    return OrderAnalysisPrompt(system=system, user=user)
+    return OrderAnalysisPrompt(system=system, user=user, version=version)
 
 
 def extract_json_object(raw: str) -> dict:

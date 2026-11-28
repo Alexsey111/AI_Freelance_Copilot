@@ -16,6 +16,7 @@ import logging
 from dataclasses import dataclass
 
 from app.config import Settings, get_settings
+from app.domain.intake import intake_facts
 from app.domain.matching import extract_skills, match_order_to_profile
 from app.domain.models.analysis import (
     Analysis,
@@ -171,6 +172,25 @@ class AnalysisService:
         error: str | None = None
 
     @staticmethod
+    def _skill_lexicon(profile) -> dict[str, tuple[str, ...]] | None:
+        """Лексикон навыков/товаров из профиля.
+
+        Фриланс-профилю он не нужен: там канонический IT-лексикон в `matching.py`.
+        Компании без своего лексикона (опт, производство, услуги) получают None —
+        и детерминированное сопоставление честно скажет «не удалось определить»,
+        а не подставит IT-навыки.
+        """
+        raw = (getattr(profile, "preferences", None) or {}).get("skill_lexicon")
+        if not isinstance(raw, dict) or not raw:
+            return None
+        lexicon: dict[str, tuple[str, ...]] = {}
+        for skill, aliases in raw.items():
+            if not skill or not aliases:
+                continue
+            lexicon[str(skill)] = tuple(str(alias) for alias in aliases if str(alias).strip())
+        return lexicon or None
+
+    @staticmethod
     def _budget_floor(profile) -> float | None:
         """Минимальный бюджет из профиля исполнителя.
 
@@ -188,11 +208,16 @@ class AnalysisService:
 
     def _apply_business_rules(self, order: Order, profile, llm_result: AnalysisResult) -> _Decision:
         applied: list[str] = []
-        order_skills = extract_skills(order.full_text)
+        order_skills = extract_skills(order.full_text, self._skill_lexicon(profile))
         deterministic = match_order_to_profile(order_skills, profile.normalized_skills)
 
         # Правило 1 (ТЗ §13, §14.1): не хватает критически важных данных.
-        missing = order.missing_data(self.settings.min_description_chars)
+        # В домене заявок бюджет может не называться — профиль это разрешает.
+        preferences = getattr(profile, "preferences", None) or {}
+        missing = order.missing_data(
+            self.settings.min_description_chars,
+            require_budget=bool(preferences.get("require_budget", True)),
+        )
         if missing:
             applied.append("missing_critical_data")
             return self._Decision(
@@ -235,8 +260,11 @@ class AnalysisService:
         # Правило 1.3: бюджет выше разумного предела — вероятная ошибка ввода (например,
         # диапазон «от 15 000 до 20 000» склеился в 1 500 020 000 ₽ на стороне площадки).
         # Такой заказ нельзя молча ни откликать, ни отбрасывать: решает человек.
+        # В домене заявок это правило не работает: 1,2 млн — не ошибка ввода, а крупная
+        # сделка, и её обрабатывает отдельное правило (см. ниже).
+        domain = preferences.get("domain")
         cap = self.settings.budget_review_cap_rub
-        if cap and order_budget_top is not None and order_budget_top > cap:
+        if domain != "intake" and cap and order_budget_top is not None and order_budget_top > cap:
             applied.append("budget_above_review_cap")
             return self._Decision(
                 result=AnalysisResult(
@@ -258,6 +286,77 @@ class AnalysisService:
                 applied_rules=applied,
                 deterministic_score=deterministic.score,
             )
+
+        # Правило 1.4 (домен заявок): факты, которые система считает сама.
+        # Регион, отсрочка и крупная сумма — не «мнение модели», а проверяемые условия:
+        # на живом прогоне модель назвала отсрочку 21 день «больше 30» и ушла в проверку
+        # по ложной причине. Теперь числа считаются здесь и попадают в промпт как факты.
+        if domain == "intake":
+            facts = intake_facts(order, profile)
+            if facts["region_status"] == "outside":
+                applied.append("region_out_of_service_area")
+                return self._Decision(
+                    result=AnalysisResult(
+                        match_score=None,
+                        recommendation=Recommendation.REVIEW,
+                        reason=(
+                            "Регион вне зоны обслуживания"
+                            + (f": {facts['region_found']}" if facts["region_found"] else "")
+                        ),
+                        matched_skills=llm_result.matched_skills,
+                        missing_skills=llm_result.missing_skills,
+                        draft_reply=None,
+                        needs_review=True,
+                        review_reason=(
+                            "Заявка из региона вне зоны обслуживания"
+                            + (f" ({facts['region_found']})" if facts["region_found"] else "")
+                            + " — решает человек: доставка и документы"
+                        ),
+                    ),
+                    applied_rules=applied,
+                    deterministic_score=deterministic.score,
+                )
+            limit = facts["deferment_limit_days"]
+            days = facts["deferment_days"]
+            if limit is not None and days is not None and days > limit:
+                applied.append("deferment_over_limit")
+                return self._Decision(
+                    result=AnalysisResult(
+                        match_score=None,
+                        recommendation=Recommendation.REVIEW,
+                        reason=f"Отсрочка {days} дн. больше лимита {limit} дн.",
+                        matched_skills=llm_result.matched_skills,
+                        missing_skills=llm_result.missing_skills,
+                        draft_reply=None,
+                        needs_review=True,
+                        review_reason=(
+                            f"Клиент просит отсрочку {days} дн. при лимите {limit} дн. — "
+                            "условия оплаты решает человек"
+                        ),
+                    ),
+                    applied_rules=applied,
+                    deterministic_score=deterministic.score,
+                )
+            big = facts["large_order_rub"]
+            total = facts["order_total_rub"]
+            if big and total is not None and total >= float(big):
+                applied.append("large_order_needs_human")
+                return self._Decision(
+                    result=AnalysisResult(
+                        match_score=None,
+                        recommendation=Recommendation.REVIEW,
+                        reason=(
+                            f"Крупная заявка: {total:.0f} ₽ при пороге {float(big):.0f} ₽"
+                        ),
+                        matched_skills=llm_result.matched_skills,
+                        missing_skills=llm_result.missing_skills,
+                        draft_reply=None,
+                        needs_review=True,
+                        review_reason="Крупная сумма — решает человек: наличие, срок, скидка",
+                    ),
+                    applied_rules=applied,
+                    deterministic_score=deterministic.score,
+                )
 
         # Правило 2 (ТЗ §14.3): соответствие профилю определить не удалось.
         if not deterministic.is_determined:

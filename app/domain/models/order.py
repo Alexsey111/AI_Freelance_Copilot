@@ -73,17 +73,21 @@ class Order:
     def has_budget(self) -> bool:
         return self.budget_min is not None or self.budget_max is not None
 
-    def missing_data(self, min_description_chars: int = 40) -> list[str]:
+    def missing_data(
+        self, min_description_chars: int = 40, require_budget: bool = True
+    ) -> list[str]:
         """Каких критически важных данных не хватает (ТЗ §13, §14 случай 1).
 
         Возвращает список человекочитаемых причин. Пустой список = данных достаточно.
         Отсутствующие данные НЕ додумываются (ТЗ §29.2).
+        `require_budget=False` — для домена входящих заявок: в опте бюджет часто
+        не называют в первом письме, и это не повод останавливать разбор.
         """
         missing: list[str] = []
         if not self.title.strip():
             missing.append("не указано название заказа")
         if len(self.description.strip()) < min_description_chars:
             missing.append("описание слишком короткое / не указан объём работ")
-        if not self.has_budget:
+        if require_budget and not self.has_budget:
             missing.append("не указан бюджет")
         return missing

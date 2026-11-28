@@ -66,6 +66,9 @@ class OpenAIProvider:
 
     async def analyze_order(self, order: Order, profile: Profile) -> AnalysisResult:
         prompt = build_order_prompt(order, profile, rules=self.rules)
+        # Версия промпта зависит от домена профиля (фриланс/заявки) — в audit и health
+        # должна попадать фактически использованная, а не константа модуля.
+        self.prompt_version = prompt.version
         started = time.perf_counter()
         try:
             response = await asyncio.wait_for(
